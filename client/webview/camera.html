@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="stylesheets/rover.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Camera View Page</title>
+</head>
+
+<body>
+    <div class="navbar">
+        <h1><a href="index.html">Helelani Rover Control Panel</a></h1>
+        <div class="nav-actions">
+            <button><a href="login.html">Login</a></button>
+            <button id="theme-toggle" aria-label="Toggle dark mode">Change Theme</button>
+        </div>
+    </div>
+
+</body>
+
+</html>
+
+<script> // Script for changing page theme, defaults to system settings.
+    const toggleButton = document.getElementById('theme-toggle');
+    const body = document.body;
+    const themeKey = 'theme';
+    const darkModeClass = 'dark-mode';
+
+    // Function to set the theme
+    function setTheme(theme) {
+        if (theme === 'dark') {
+            body.classList.add(darkModeClass);
+            localStorage.setItem(themeKey, 'dark'); // Save preference
+        } else {
+            body.classList.remove(darkModeClass);
+            localStorage.setItem(themeKey, 'light'); // Save preference
+        }
+    }
+
+    // Function to toggle the theme on click
+    function toggleTheme() {
+        if (body.classList.contains(darkModeClass)) {
+            setTheme('light');
+        } else {
+            setTheme('dark');
+        }
+    }
+
+    // Check for saved preference on page load
+    const savedTheme = localStorage.getItem(themeKey);
+    // Also detect system preference if no local preference is set
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+    if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+        setTheme('dark');
+    } else {
+        setTheme('light'); // Explicitly set light mode as default if no dark mode preference
+    }
+
+    // Add event listener to the button
+    toggleButton.addEventListener('click', toggleTheme);
+
+</script>
