@@ -7,8 +7,9 @@ find_library(STROPHE_STATIC_LIB
 # 2. Libstrophe depends on an XML parser and SSL
 # These are usually on the rover, but for safety, we find them too
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(EXPAT REQUIRED expat)
+find_package(LibXml2 REQUIRED)
 pkg_check_modules(OPENSSL REQUIRED openssl)
+pkg_check_modules(ZLIB REQUIRED zlib)
 
 add_library(shared_xmpp STATIC
         libstrophe_cpp.cpp
@@ -16,14 +17,15 @@ add_library(shared_xmpp STATIC
 )
 
 target_include_directories(shared_xmpp PUBLIC .)
-target_include_directories(shared_xmpp PRIVATE "$ENV{HOME}/.local/include")
+target_include_directories(shared_xmpp PUBLIC "$ENV{HOME}/.local/include")
 
 # 3. Link the static strophe file directly
-# We also link its dependencies (expat/ssl) so the linker is happy
+# We also link its dependencies so the linker is happy
 target_link_libraries(shared_xmpp PUBLIC
         ${STROPHE_STATIC_LIB}
-        ${EXPAT_LIBRARIES}
+        ${LIBXML2_LIBRARIES}
         ${OPENSSL_LIBRARIES}
+        ${ZLIB_LIBRARIES}
         pthread
         resolv
 )
