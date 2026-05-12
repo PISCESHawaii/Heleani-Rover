@@ -1,10 +1,14 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <thread>
 
 #include "libstrophe_cpp.h"
 #include "xmpp_node.h"
 #include "xmpp_iq.h"
+
+// TODO: get this from an iq set
+#define client_jid "testing@pain.agency/client"
 
 /**
  * Message Handler (Echo Bot Logic)
@@ -14,8 +18,8 @@ void handle_message(libstrophe_cpp *client, XmppNode stanza) {
     // 1. Find the message body
     std::string message_text = "no body";
     for (const auto &child: stanza.children) {
-        if (child.name == "body") {
-            message_text = child.text_content;
+        if (child->name == "body") {
+            message_text = child->text_content;
             break;
         }
     }
@@ -28,7 +32,7 @@ void handle_message(libstrophe_cpp *client, XmppNode stanza) {
     reply.attributes["type"] = "chat";
     XmppNode body("body");
     body.text_content = "Echo: \"" + message_text + "\"";
-    reply.children.emplace_back(body);
+    reply.children.emplace_back(std::make_shared<XmppNode>(body));
 
     client->send(reply);
 
@@ -45,9 +49,9 @@ void handle_message(libstrophe_cpp *client, XmppNode stanza) {
         if (response.attributes["type"] == "result") {
             // Find the query child and its children (name, version, os)
             for (const auto &query: response.children) {
-                if (query.name == "query") {
-                    for (const auto &info: query.children) {
-                        std::cout << info.name << ": " << info.text_content << std::endl;
+                if (query->name == "query") {
+                    for (const auto &info: query->children) {
+                        std::cout << info->name << ": " << info->text_content << std::endl;
                     }
                 }
             }
@@ -89,15 +93,15 @@ int main() {
                            XmppNode os("os");
                            os.text_content = "Linux";
 
-                           query.children.emplace_back(name);
-                           query.children.emplace_back(version);
-                           query.children.emplace_back(os);
+                           query.children.emplace_back(std::make_shared<XmppNode>(name));
+                           query.children.emplace_back(std::make_shared<XmppNode>(version));
+                           query.children.emplace_back(std::make_shared<XmppNode>(os));
 
                            XmppNode response("iq");
                            response.attributes["type"] = "result";
                            response.attributes["to"] = request.attributes["from"];
                            response.attributes["id"] = request.attributes["id"];
-                           response.children.emplace_back(query);
+                           response.children.emplace_back(std::make_shared<XmppNode>(query));
                            return response;
                        });
 
@@ -109,13 +113,13 @@ int main() {
                            query.attributes["xmlns"] = "rover::movements::forward";
                            XmppNode status("status");
                            status.text_content = "Moving forward";
-                           query.children.emplace_back(status);
+                           query.children.emplace_back(std::make_shared<XmppNode>(status));
 
                            XmppNode response("iq");
                            response.attributes["type"] = "result";
                            response.attributes["to"] = request.attributes["from"];
                            response.attributes["id"] = request.attributes["id"];
-                           response.children.emplace_back(query);
+                           response.children.emplace_back(std::make_shared<XmppNode>(query));
                            return response;
                        });
 
@@ -126,13 +130,13 @@ int main() {
                            query.attributes["xmlns"] = "rover::movements::turn_right";
                            XmppNode status("status");
                            status.text_content = "Turning right";
-                           query.children.emplace_back(status);
+                           query.children.emplace_back(std::make_shared<XmppNode>(status));
 
                            XmppNode response("iq");
                            response.attributes["type"] = "result";
                            response.attributes["to"] = request.attributes["from"];
                            response.attributes["id"] = request.attributes["id"];
-                           response.children.emplace_back(query);
+                           response.children.emplace_back(std::make_shared<XmppNode>(query));
                            return response;
                        });
 
@@ -143,13 +147,13 @@ int main() {
                            query.attributes["xmlns"] = "rover::movements::backward";
                            XmppNode status("status");
                            status.text_content = "Moving backward";
-                           query.children.emplace_back(status);
+                           query.children.emplace_back(std::make_shared<XmppNode>(status));
 
                            XmppNode response("iq");
                            response.attributes["type"] = "result";
                            response.attributes["to"] = request.attributes["from"];
                            response.attributes["id"] = request.attributes["id"];
-                           response.children.emplace_back(query);
+                           response.children.emplace_back(std::make_shared<XmppNode>(query));
                            return response;
                        });
 
@@ -160,13 +164,13 @@ int main() {
                            query.attributes["xmlns"] = "rover::movements::left";
                            XmppNode status("status");
                            status.text_content = "Turning left";
-                           query.children.emplace_back(status);
+                           query.children.emplace_back(std::make_shared<XmppNode>(status));
 
                            XmppNode response("iq");
                            response.attributes["type"] = "result";
                            response.attributes["to"] = request.attributes["from"];
                            response.attributes["id"] = request.attributes["id"];
-                           response.children.emplace_back(query);
+                           response.children.emplace_back(std::make_shared<XmppNode>(query));
                            return response;
                        });
 
@@ -177,13 +181,13 @@ int main() {
                            query.attributes["xmlns"] = "rover::movements::stop";
                            XmppNode status("status");
                            status.text_content = "Stopping";
-                           query.children.emplace_back(status);
+                           query.children.emplace_back(std::make_shared<XmppNode>(status));
 
                            XmppNode response("iq");
                            response.attributes["type"] = "result";
                            response.attributes["to"] = request.attributes["from"];
                            response.attributes["id"] = request.attributes["id"];
-                           response.children.emplace_back(query);
+                           response.children.emplace_back(std::make_shared<XmppNode>(query));
                            return response;
                        });
 
@@ -194,18 +198,21 @@ int main() {
                            query.attributes["xmlns"] = "rover::movements::right";
                            XmppNode status("status");
                            status.text_content = "Turning right";
-                           query.children.emplace_back(status);
+                           query.children.emplace_back(std::make_shared<XmppNode>(status));
 
                            XmppNode response("iq");
                            response.attributes["type"] = "result";
                            response.attributes["to"] = request.attributes["from"];
                            response.attributes["id"] = request.attributes["id"];
-                           response.children.emplace_back(query);
+                           response.children.emplace_back(std::make_shared<XmppNode>(query));
                            return response;
                        });
 
 
     std::cout << "Connecting to XMPP server as " << jid << "..." << std::endl;
 
-    return lsc.connect_noexcept(nullptr, nullptr);
+    return lsc.connect_noexcept(
+        nullptr,
+        nullptr
+    );
 }

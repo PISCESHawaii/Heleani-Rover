@@ -21,7 +21,7 @@ public:
     std::string name;
     std::string text_content;
     std::unordered_map<std::string, std::string> attributes;
-    std::vector<XmppNode> children;
+    std::vector<std::shared_ptr<XmppNode> > children;
 
     XmppNode(std::string n = "") : name(std::move(n)) {
     }
@@ -38,9 +38,9 @@ public:
      * @return A pointer to the first child node matching the specified tag name,
      *         or nullptr if no match is found.
      */
-    std::optional<XmppNode> find_child(const std::string &tag_name) {
+    std::optional<std::shared_ptr<XmppNode> > find_child(const std::string &tag_name) {
         for (auto child: children) {
-            if (child.name == tag_name) return child;
+            if (child->name == tag_name) return child;
         }
         return std::nullopt;
     }
@@ -59,7 +59,7 @@ public:
      * @return A vector containing pointers to the matching child nodes.
      *         If no match is found, the vector will be empty.
      */
-    std::vector<XmppNode *> find_all(const std::string &tag_name, size_t limit = 0);
+    std::vector<std::shared_ptr<XmppNode> > find_all(const std::string &tag_name, size_t limit = 0);
 
     /**
      * Converts the XMPP node and its hierarchical structure into a libstrophe stanza.

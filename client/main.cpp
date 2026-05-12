@@ -30,9 +30,9 @@ void log_server_details(saucer::smartview &webview, libstrophe_cpp *xmpp_client)
         if (response.attributes["type"] == "result") {
             // Find the query child and its children (name, version, os)
             for (const auto &query: response.children) {
-                if (query.name == "query") {
-                    for (const auto &info: query.children) {
-                        versionLog << ' ' << info.name << ": " << info.text_content << ';';
+                if (query->name == "query") {
+                    for (const auto &info: query->children) {
+                        versionLog << ' ' << info->name << ": " << info->text_content << ';';
                     }
                 }
             }
@@ -57,9 +57,9 @@ void send_command(saucer::smartview &webview, libstrophe_cpp *xmpp_client, std::
         auto query_node = response.find_child("query");
         std::string status = "(null)";
         if (query_node.has_value()) {
-            auto status_node = query_node->find_child("status");
+            auto status_node = query_node.value()->find_child("status");
             if (status_node.has_value()) {
-                status = status_node.value().text_content;
+                status = status_node.value()->text_content;
             }
         }
         // auto status = status_node.has_value() ? status_node.value().text_content : "(null)";

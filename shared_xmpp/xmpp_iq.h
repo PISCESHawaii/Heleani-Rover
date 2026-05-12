@@ -31,7 +31,7 @@ inline XmppNode make_iq_query(const std::string &type,
     XmppNode query(query_name);
     query.attributes["xmlns"] = xmlns;
 
-    iq.children.emplace_back(std::move(query));
+    iq.children.emplace_back(std::make_shared<XmppNode>(std::move(query)));
     return iq;
 }
 

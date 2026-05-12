@@ -4,11 +4,11 @@
 
 #include "xmpp_node.h"
 
-std::vector<XmppNode *> XmppNode::find_all(const std::string &tag_name, size_t limit) {
-    std::vector<XmppNode *> results;
+std::vector<std::shared_ptr<XmppNode> > XmppNode::find_all(const std::string &tag_name, size_t limit) {
+    std::vector<std::shared_ptr<XmppNode> > results;
     for (auto &child: children) {
-        if (child.name == tag_name) {
-            results.push_back(&child);
+        if (child->name == tag_name) {
+            results.push_back(child);
             if (limit > 0 && results.size() == limit) break; // Optimization: stop early
         }
     }
@@ -34,7 +34,7 @@ xmpp_stanza_t *XmppNode::to_libstrophe(xmpp_ctx_t *ctx) const {
 
     // Children (Recursive)
     for (const auto &child: children) {
-        xmpp_stanza_t *c_child = child.to_libstrophe(ctx);
+        xmpp_stanza_t *c_child = child->to_libstrophe(ctx);
         xmpp_stanza_add_child(s, c_child);
         xmpp_stanza_release(c_child); // Parent now owns it
     }
@@ -68,7 +68,9 @@ XmppNode XmppNode::from_libstrophe(xmpp_stanza_t *s) {
                 xmpp_free(xmpp_stanza_get_context(s), text);
             }
         } else {
-            node.children.push_back(XmppNode::from_libstrophe(child));
+            node.children.push_back(
+                std::make_shared<XmppNode>(from_libstrophe(child))
+            );
         }
         child = xmpp_stanza_get_next(child);
     }
