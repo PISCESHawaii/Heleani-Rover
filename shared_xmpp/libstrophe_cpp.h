@@ -81,6 +81,9 @@ private:
     static int internal_iq_handler(xmpp_conn_t *conn, xmpp_stanza_t *stanza, void *userdata);
 
 public:
+    std::string localpart;
+    std::string domain;
+
     libstrophe_cpp(xmpp_log_level_t log_level, const std::string &jid, const std::string &pass);
 
     //libstrophe specific deallocation

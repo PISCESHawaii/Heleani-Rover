@@ -2,9 +2,34 @@
 
 #include <cassert>
 #include <iostream>
+#include <ranges>
 
 libstrophe_cpp::libstrophe_cpp(xmpp_log_level_t log_level, const std::string &jid, const std::string &pass)
     : jid(jid), pass(pass) {
+    if (jid.empty() || pass.empty()) {
+        throw std::invalid_argument("JID and password must be provided");
+    }
+    auto jidParts = jid | std::views::split('@');
+    int part_idx = 0;
+
+    for (const auto &part: jidParts) {
+        switch (part_idx) {
+            case 0:
+                localpart = std::string{part.begin(), part.end()};
+                break;
+            case 1:
+                domain = std::string{part.begin(), part.end()};
+                break;
+            default:
+                throw std::invalid_argument("JID must be in the form <localpart>@<domain>");
+        }
+        part_idx++;
+    }
+
+    if (localpart.empty() || domain.empty()) {
+        throw std::invalid_argument("JID must be in the form <localpart>@<domain>");
+    }
+
     // Initialize the XMPP library
     xmpp_initialize();
 

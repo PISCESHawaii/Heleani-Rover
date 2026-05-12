@@ -2,8 +2,8 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <link rel="stylesheet" href="stylesheets/rover.css">
     <title>PICSES Helelani Rover</title>
 </head>
@@ -13,8 +13,8 @@
     <div class="login-dialog">
         <h2>XMPP Login</h2>
         <div class="error" id="login-error">Login failed</div>
-        <input type="text" id="jid" placeholder="JID (e.g., user@example.com)" />
-        <input type="password" id="password" placeholder="Password" />
+        <input type="text" id="jid" placeholder="JID (e.g., user@example.com)"/>
+        <input type="password" id="password" placeholder="Password"/>
         <div class="buttons">
             <button id="cancel-login">Cancel</button>
             <button id="submit-login">Login</button>
@@ -109,29 +109,32 @@
         logBox.scrollTop = logBox.scrollHeight;
     }
 
+    // make accessible from saucer
+    window.addLog = addLog;
+
     /**
      * EVENTS: Replaced Wails EventsOn with saucer.on
      */
-    // saucer.on('status-update', (data) => {
-    //     switch (data.type) {
-    //         case 'battery': statusBattery.textContent = data.value; break;
-    //         case 'signal':  statusSignal.textContent = data.value; break;
-    //         case 'speed':   statusSpeed.textContent = data.value; break;
-    //     }
-    // });
-    //
-    // saucer.on('log-message', (data) => {
-    //     addLog(data.time, data.message);
-    // });
-    //
-    // saucer.on('connected', (success) => {
-    //     if (success) {
-    //         setControlsEnabled(true);
-    //         addLog(new Date().toLocaleTimeString(), 'Connected to XMPP server');
-    //     }
-    // });
+        // saucer.on('status-update', (data) => {
+        //     switch (data.type) {
+        //         case 'battery': statusBattery.textContent = data.value; break;
+        //         case 'signal':  statusSignal.textContent = data.value; break;
+        //         case 'speed':   statusSpeed.textContent = data.value; break;
+        //     }
+        // });
+        //
+        // saucer.on('log-message', (data) => {
+        //     addLog(data.time, data.message);
+        // });
+        //
+        // saucer.on('connected', (success) => {
+        //     if (success) {
+        //         setControlsEnabled(true);
+        //         addLog(new Date().toLocaleTimeString(), 'Connected to XMPP server');
+        //     }
+        // });
 
-    // ... existing DOM elements
+        // ... existing DOM elements
     const navbar = document.querySelector('.navbar');
 
     navbar.addEventListener('mousedown', (e) => {
