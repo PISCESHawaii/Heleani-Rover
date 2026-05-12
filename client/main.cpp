@@ -1,13 +1,16 @@
-#include <saucer/smartview.hpp>
-#include <saucer/embedded/all.hpp>
 #include <iostream>
 #include <string>
 
+// saucer webview shenanigans
+#include <saucer/smartview.hpp>
+#include <saucer/embedded/all.hpp>
+
+// shared xmpp code
 #include "libstrophe_cpp.h"
 #include "xmpp_iq.h"
 
 // auto-display the webview devtools incase the javascript breaks and we need to break in
-#define WEBVIEW_DEBUG_FLAG true
+#define WEBVIEW_DEBUG_FLAG false
 
 void log_server_details(saucer::smartview &webview, libstrophe_cpp *xmpp_client) {
     // --- NEW: Version Request IQ Test ---
