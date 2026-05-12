@@ -21,7 +21,8 @@ const statusSignal = document.getElementById('status-signal');
 const statusSpeed = document.getElementById('status-speed');
 
 function setControlsEnabled(enabled) {
-    controlButtons.forEach(btn => {
+    const buttons = document.querySelectorAll('.control-grid button');
+    buttons.forEach(btn => {
         btn.disabled = !enabled;
     });
 }
@@ -33,6 +34,84 @@ function addLog(time, message) {
 
 // make accessible from saucer
 window.addLog = addLog;
+
+function clearControlButtons() {
+    const controlGrid = document.getElementById('control-grid');
+    if (!controlGrid) {
+        console.error("Control grid container not found");
+        return;
+    }
+    controlGrid.innerHTML = '';
+}
+
+function addControlButton(commandId, commandName) {
+    const controlGrid = document.getElementById('control-grid');
+    if (!controlGrid) {
+        console.error("Control grid container not found");
+        return;
+    }
+
+    const button = document.createElement('button');
+    button.dataset.command = commandId;
+    button.textContent = commandName;
+    button.disabled = false;
+
+    // Add click handler
+    button.addEventListener('click', async () => {
+        const command = button.dataset.command;
+        if (!command) return;
+
+        try {
+            await saucer.exposed.SendCommand(command);
+        } catch (err) {
+            addLog(new Date().toLocaleTimeString(), 'Error: ' + err);
+        }
+    });
+
+    controlGrid.appendChild(button);
+}
+
+// Expose to be called from C++
+window.clearControlButtons = clearControlButtons;
+window.addControlButton = addControlButton;
+
+function populateControlButtons(commands) {
+    const controlGrid = document.getElementById('control-grid');
+    if (!controlGrid) {
+        console.error("Control grid container not found");
+        return;
+    }
+
+    // Clear existing buttons
+    controlGrid.innerHTML = '';
+
+    // Create a button for each command
+    commands.forEach(([commandId, commandName]) => {
+        const button = document.createElement('button');
+        button.dataset.command = commandId;
+        button.textContent = commandName;
+        button.disabled = false; // Enable after login
+
+        // Add click handler
+        button.addEventListener('click', async () => {
+            const command = button.dataset.command;
+            if (!command) return;
+
+            try {
+                await saucer.exposed.SendCommand(command);
+            } catch (err) {
+                addLog(new Date().toLocaleTimeString(), 'Error: ' + err);
+            }
+        });
+
+        controlGrid.appendChild(button);
+    });
+
+    addLog(new Date().toLocaleTimeString(), `Loaded ${commands.length} control commands`);
+}
+
+// Expose to be called from C++
+window.populateControlButtons = populateControlButtons;
 
 const navbar = document.querySelector('.navbar');
 

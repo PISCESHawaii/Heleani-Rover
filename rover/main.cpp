@@ -208,6 +208,49 @@ int main() {
                            return response;
                        });
 
+    lsc.set_iq_handler("get", "rover::getopts",
+                       [](libstrophe_cpp *c, XmppNode request) {
+                           std::cout << "Rover options requested" << std::endl;
+
+                           XmppNode query("query");
+                           query.attributes["xmlns"] = "rover::getopts";
+
+                           // Video URL
+                           XmppNode video_url("video_url");
+                           video_url.text_content = "https://www.youtube.com/embed/txTRZh_tiYA";
+                           query.children.emplace_back(std::make_shared<XmppNode>(video_url));
+
+                           // Commands container
+                           XmppNode commands("commands");
+
+                           // Add each available command
+                           std::vector<std::pair<std::string, std::string> > available_commands = {
+                               {"rover::movements::forward", "Forward"},
+                               {"rover::movements::turn_right", "Turn Right"},
+                               {"rover::movements::backward", "Backwards"},
+                               {"rover::movements::left", "Left"},
+                               {"rover::movements::stop", "Stop"},
+                               {"rover::movements::right", "Right"}
+                           };
+
+                           for (const auto &[cmd_id, cmd_name]: available_commands) {
+                               XmppNode command("command");
+                               command.attributes["id"] = cmd_id;
+                               command.text_content = cmd_name;
+                               commands.children.emplace_back(std::make_shared<XmppNode>(command));
+                           }
+
+                           query.children.emplace_back(std::make_shared<XmppNode>(commands));
+
+                           XmppNode response("iq");
+                           response.attributes["type"] = "result";
+                           response.attributes["to"] = request.attributes["from"];
+                           response.attributes["id"] = request.attributes["id"];
+                           response.children.emplace_back(std::make_shared<XmppNode>(query));
+                           std::cout << "Rover options sent" << std::endl;
+                           return response;
+                       });
+
 
     std::cout << "Connecting to XMPP server as " << jid << "..." << std::endl;
 
