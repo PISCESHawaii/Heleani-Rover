@@ -217,7 +217,7 @@ int main() {
 
                            // Video URL
                            XmppNode video_url("video_url");
-                           video_url.text_content = "https://www.youtube.com/embed/txTRZh_tiYA";
+                           video_url.text_content = "https://dl.4d2.sh/tQvzglBcFLAk.mp4";
                            query.children.emplace_back(std::make_shared<XmppNode>(video_url));
 
                            // Commands container
