@@ -10,7 +10,7 @@
 #include "xmpp_iq.h"
 
 // auto-display the webview devtools incase the javascript breaks and we need to break in
-#define WEBVIEW_DEBUG_FLAG false
+#define WEBVIEW_DEBUG_FLAG true
 
 std::string COMMAND_REQEST_TYPE = "set";
 #define ROVER_LOCALPART "testing"
@@ -146,6 +146,8 @@ coco::stray start(saucer::application *app) {
                 return response;
             }
         );
+
+        webview->execute("setCameraIframe({})", "https://www.youtube.com/embed/txTRZh_tiYA");
 
         // 1=success -1=failure 0=pending
         auto success = std::make_shared<std::atomic<char> >(0);

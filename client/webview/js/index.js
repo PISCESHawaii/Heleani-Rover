@@ -181,6 +181,29 @@ window.updateBattery = updateBattery;
 window.updateSignal = updateSignal;
 window.updateSpeed = updateSpeed;
 
+function setCameraIframe(url) {
+    const container = document.getElementById("camera-feed");
+    if (!container) {
+        console.error("Camera container not found: " + containerId);
+        return;
+    }
+
+    // Look for an existing iframe or create a new one
+    let iframe = container.querySelector('iframe');
+    if (!iframe) {
+        iframe = document.createElement('iframe');
+        iframe.style.width = "100%";
+        iframe.style.height = "100%";
+        iframe.style.border = "none";
+        iframe.setAttribute('allow', 'autoplay; encrypted-media');
+        container.appendChild(iframe);
+    }
+
+    iframe.src = url;
+}
+
+window.setCameraIframe = setCameraIframe;
+
 // Theme toggle (Standard JS, no changes needed)
 const toggleButton = document.getElementById('theme-toggle');
 const body = document.body;
