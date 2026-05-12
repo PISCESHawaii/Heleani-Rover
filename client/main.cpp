@@ -12,6 +12,10 @@
 // auto-display the webview devtools incase the javascript breaks and we need to break in
 #define WEBVIEW_DEBUG_FLAG false
 
+std::string COMMAND_REQEST_TYPE = "set";
+#define ROVER_LOCALPART "testing"
+#define ROVER_RESOURCE "helelani"
+
 void log_server_details(saucer::smartview &webview, libstrophe_cpp *xmpp_client) {
     // --- NEW: Version Request IQ Test ---
     // We send this once to verify our new send_iq logic works.
@@ -19,7 +23,7 @@ void log_server_details(saucer::smartview &webview, libstrophe_cpp *xmpp_client)
     version_req.attributes["to"] = xmpp_client->domain;
 
 
-    xmpp_client->send_iq(version_req, [&](libstrophe_cpp *c, XmppNode response) {
+    xmpp_client->send_iq(version_req, [&webview](libstrophe_cpp *c, XmppNode response) {
         std::stringstream versionLog;
         versionLog << "Server Version:";
 
@@ -39,6 +43,36 @@ void log_server_details(saucer::smartview &webview, libstrophe_cpp *xmpp_client)
         // log the freshly fetched details
         std::cout << versionLog.str() << std::endl;
         webview.execute("addLog(new Date().toLocaleTimeString(), {})", versionLog.str());
+    });
+}
+
+void send_command(saucer::smartview &webview, libstrophe_cpp *xmpp_client, std::string command_id) {
+    auto command = make_iq_query(COMMAND_REQEST_TYPE, "query", command_id);
+    command.attributes["to"] = std::format("{}@{}/{}", ROVER_LOCALPART, xmpp_client->domain, ROVER_RESOURCE);
+
+    xmpp_client->send_iq(command, [&webview, command_id](libstrophe_cpp *c, XmppNode response) {
+        std::stringstream responseLog;
+        responseLog << command_id;
+
+        auto query_node = response.find_child("query");
+        std::string status = "(null)";
+        if (query_node.has_value()) {
+            auto status_node = query_node->find_child("status");
+            if (status_node.has_value()) {
+                status = status_node.value().text_content;
+            }
+        }
+        // auto status = status_node.has_value() ? status_node.value().text_content : "(null)";
+
+        if (response.attributes["type"] == "result") {
+            responseLog << " sent successfully, got back status \"" << status << "\"\n";
+        } else {
+            responseLog << " got error status \"" << status << "\"\n";
+        }
+
+        // log the freshly fetched details
+        std::cout << responseLog.str() << std::endl;
+        webview.execute("addLog(new Date().toLocaleTimeString(), {})", responseLog.str());
     });
 }
 
@@ -121,9 +155,9 @@ coco::stray start(saucer::application *app) {
         });
         timeout.detach();
     });
-    webview->expose("SendCommand", [](std::string command) -> coco::task<void> {
-        std::cout << "Sending command: " << command << std::endl;
-        co_return;
+
+    webview->expose("SendCommand", [&](std::string command) {
+        send_command(webview.value(), xmpp_client, command);
     });
 
     // include embedded webview assets and know where to start them
