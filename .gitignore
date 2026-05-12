@@ -1,4 +1,5 @@
 .idea
 .git
+.saucer
 cmake-build-debug
 db

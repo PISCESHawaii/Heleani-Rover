@@ -132,19 +132,18 @@ coco::stray start(saucer::application *app) {
                             }
                         }
                     }
-
-                    // Build the result response
-                    XmppNode resp_query("query");
-                    resp_query.attributes["xmlns"] = "rover::telemetry";
-
-                    XmppNode response("iq");
-                    response.attributes["type"] = "result";
-                    response.attributes["to"] = request.attributes["from"];
-                    response.attributes["id"] = request.attributes["id"];
-                    response.children.emplace_back(std::make_shared<XmppNode>(resp_query));
-
-                    return response;
                 }
+                // Build the result response
+                XmppNode resp_query("query");
+                resp_query.attributes["xmlns"] = "rover::telemetry";
+
+                XmppNode response("iq");
+                response.attributes["type"] = "result";
+                response.attributes["to"] = request.attributes["from"];
+                response.attributes["id"] = request.attributes["id"];
+                response.children.emplace_back(std::make_shared<XmppNode>(resp_query));
+
+                return response;
             }
         );
 
