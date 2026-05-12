@@ -32,7 +32,7 @@ body {
     height: 100vh;
     display: flex;
     flex-direction: column;
-    overflow: auto;
+    overflow: hidden; /* Prevent page scrolling */
 }
 
 a { 
@@ -64,6 +64,9 @@ p#button-theme {
 
 /* Top Navigation Bar */
 .navbar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
     height: 60px;
     background-color: var(--bg-color);
     display: flex;
@@ -98,10 +101,11 @@ p#button-theme {
 .dashboard {
     flex: 1;
     display: grid;
-    grid-template-columns: .75fr 2fr 1fr;
-    grid-template-rows: min-content;
+    grid-template-columns: .75fr 2fr;
+    grid-template-rows: 1fr 1fr auto;
     gap: 14px;
     padding: 16px;
+    overflow: auto; /* Allow dashboard to scroll if needed */
 }
 
 .panel {
@@ -132,7 +136,7 @@ p#button-theme {
 
 .camera {
     grid-column: 2 / 3;
-    grid-row: 1 / 4;
+    grid-row: 1 / 3;
     /*align-items: left;*/
     justify-content: center;
 }
@@ -166,8 +170,9 @@ p#button-theme {
 }
 
 .log {
-    grid-column: 3 / 4;
-    grid-row: 1 / 4;
+    grid-column: 2 / 3;
+    grid-row: 3 / 4;
+    height: 150px; /* Fixed height - no growing or shrinking */
 }
 
 /* Controls */
@@ -206,8 +211,9 @@ p#button-theme {
     border: 2px solid var(--button-bg);
     border-radius: 6px;
     padding: 8px;
-    overflow-y: scroll;
+    overflow-y: auto; /* Independent scrolling */
     font-size: 13px;
+    min-height: 0; /* Important for flex scrolling */
 }
 
 .login-overlay {
