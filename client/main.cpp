@@ -34,40 +34,49 @@ coco::stray start(saucer::application *app) {
 
         xmpp_client = new libstrophe_cpp(XMPP_LEVEL_DEBUG, jid, password);
 
-        auto connected = std::make_shared<std::atomic<bool> >(false);
-        auto failed = std::make_shared<std::atomic<bool> >(false);
+        // 1=success -1=failure 0=pending
+        auto success = std::make_shared<std::atomic<char> >(0);
 
         // run libstrophe in a thread
-        std::thread t([=]() {
+        std::thread t([=, &xmpp_client]() {
+            // keep a stale pointer so that we can clean it up once exited
+            auto stale_client_ptr = xmpp_client;
+
+            // connect
             xmpp_client->connect_noexcept(
+                // when the client connects this will be called
                 [=]() {
-                    if (failed->load()) return;
-                    connected->store(true);
+                    if (success->exchange(1) != 0) return;
                     resolve("Connected");
                 },
-                [=](const int error, const std::string &detail) {
-                    if (connected->load()) return;
-                    // failed->compare_exchange_strong()
-                    reject(std::format("Connection failed with error: {}\n{}", error,
-                                       detail));
+                // if theres a capturable error, idk how to reliably get out the error
+                [=, &xmpp_client](const int error, const std::string &detail) {
+                    if (success->exchange(-1) != 0) return;
+                    reject(
+                        std::format("Connection failed with error: {}\n{}", error, detail)
+                    );
+                    if (!xmpp_client) return;
+                    auto old_client = xmpp_client;
+                    xmpp_client = nullptr;
+                    old_client->disconnect();
                 }
             );
 
             std::cout << "client done\n";
+            // cleanup closed client
+            if (stale_client_ptr) delete stale_client_ptr;
         });
         t.detach();
 
         // separate thread to deal with libstrophe blocking on failing dns
         std::thread timeout([=, &xmpp_client]() {
             sleep(10);
-            if (!connected->load() && !failed->load()) {
-                failed->store(true);
-                reject("Connection timed out");
-                // if (!xmpp_client) return;
-                // auto old_client = xmpp_client;
-                // xmpp_client = nullptr;
-                // old_client->disconnect();
-            }
+            if (success->exchange(-1)) return;
+            reject("Connection timed out");
+            if (!xmpp_client) return;
+            auto old_client = xmpp_client;
+            xmpp_client = nullptr;
+            old_client->disconnect();
         });
         timeout.detach();
     });
