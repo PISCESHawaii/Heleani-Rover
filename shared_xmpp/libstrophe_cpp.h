@@ -42,6 +42,9 @@ public:
     >;
 
 private:
+    std::mutex send_lock;
+    std::mutex iq_lock;
+
     struct HandlerEntry {
         HandlerCriteria criteria;
         StanzaHandler callback;
@@ -105,7 +108,7 @@ public:
         if (ctx) xmpp_stop(ctx);
     }
 
-    void send(const XmppNode &node) const;
+    void send(const XmppNode &node);
 
     // The new pattern-matching handler
     void set_handler(std::optional<std::string> ns,

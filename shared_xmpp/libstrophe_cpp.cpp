@@ -101,12 +101,12 @@ void libstrophe_cpp::set_handler(std::optional<std::string> ns,
                      nullptr, this);
 }
 
-void libstrophe_cpp::send(const XmppNode &node) const {
-    if (conn) {
-        xmpp_stanza_t *raw = node.to_libstrophe(ctx);
-        xmpp_send(conn, raw);
-        xmpp_stanza_release(raw);
-    }
+void libstrophe_cpp::send(const XmppNode &node) {
+    if (!conn) throw std::runtime_error("Not connected");
+    std::lock_guard lock(send_lock);
+    xmpp_stanza_t *raw = node.to_libstrophe(ctx);
+    xmpp_send(conn, raw);
+    xmpp_stanza_release(raw);
 }
 
 int libstrophe_cpp::connect_noexcept(std::function<void()> OnSuccess, std::function<void(int, std::string)> OnFailure) {
@@ -202,6 +202,8 @@ void libstrophe_cpp::set_iq_handler(std::string type, std::string ns, const IQHa
 }
 
 std::string libstrophe_cpp::send_iq(XmppNode node, StanzaHandler handler) {
+    if (!conn) throw std::runtime_error("Not connected");
+    std::lock_guard lock(iq_lock);
     if (node.attributes["id"].empty()) {
         node.attributes["id"] = "iq_" + std::to_string(++iq_id_counter);
     }
