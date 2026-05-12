@@ -9,6 +9,7 @@
 #include <vector>
 #include <unordered_map>
 #include <memory>
+#include <optional>
 #include <strophe.h>
 
 /**
@@ -37,11 +38,11 @@ public:
      * @return A pointer to the first child node matching the specified tag name,
      *         or nullptr if no match is found.
      */
-    XmppNode *find_child(const std::string &tag_name) {
-        for (auto &child: children) {
-            if (child.name == tag_name) return &child;
+    std::optional<XmppNode> find_child(const std::string &tag_name) {
+        for (auto child: children) {
+            if (child.name == tag_name) return child;
         }
-        return nullptr;
+        return std::nullopt;
     }
 
     /**
