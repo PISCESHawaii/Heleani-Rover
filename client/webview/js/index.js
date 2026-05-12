@@ -141,6 +141,46 @@ controlButtons.forEach(btn => {
     });
 });
 
+/**
+ * Status Update Functions
+ * These are mapped to the status elements defined at the top of the file.
+ */
+
+// Update all status fields at once
+function updateStatus(battery, signal, speed) {
+    if (battery !== undefined) window.updateBattery(battery);
+    if (signal !== undefined) window.updateSignal(signal);
+    if (speed !== undefined) window.updateSpeed(speed);
+}
+
+// Update Battery: expects a number (e.g., 85)
+function updateBattery(level) {
+    statusBattery.textContent = `Battery: ${level}%`;
+
+    // Optional: Add a visual warning if low
+    if (level < 20) {
+        statusBattery.style.color = '#ff4d4d';
+    } else {
+        statusBattery.style.color = '';
+    }
+}
+
+// Update Signal: expects a string or level (e.g., "Excellent" or "4/5")
+function updateSignal(strength) {
+    statusSignal.textContent = `Signal: ${strength}`;
+}
+
+// Update Speed: expects a value (e.g., "1.2 m/s")
+function updateSpeed(value) {
+    statusSpeed.textContent = `Speed: ${value}`;
+}
+
+// Expose these to the window so Saucer/C++ can call them
+window.updateStatus = updateStatus;
+window.updateBattery = updateBattery;
+window.updateSignal = updateSignal;
+window.updateSpeed = updateSpeed;
+
 // Theme toggle (Standard JS, no changes needed)
 const toggleButton = document.getElementById('theme-toggle');
 const body = document.body;

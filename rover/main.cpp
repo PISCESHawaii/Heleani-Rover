@@ -212,7 +212,51 @@ int main() {
     std::cout << "Connecting to XMPP server as " << jid << "..." << std::endl;
 
     return lsc.connect_noexcept(
-        nullptr,
+        [&]() {
+            std::cout << "Connected!" << std::endl;
+
+            std::thread pseudo_telemetry_loop([&]() {
+                while (true) {
+                    sleep(3);
+
+                    auto telemetry_iq = make_iq_query("set", "query", "rover::telemetry");
+                    telemetry_iq.attributes["to"] = client_jid;
+                    auto querypart = telemetry_iq.find_child("query").value();
+
+                    auto battery_node = std::make_shared<XmppNode>(XmppNode("battery"));
+                    battery_node->text_content = std::to_string(rand() % 100);
+                    querypart->children.emplace_back(battery_node);
+
+                    auto signal_node = std::make_shared<XmppNode>(XmppNode("signal"));
+                    signal_node->text_content = std::to_string(rand() % 100);
+                    querypart->children.emplace_back(signal_node);
+
+                    auto speed_node = std::make_shared<XmppNode>(XmppNode("speed"));
+                    speed_node->text_content = std::to_string(rand() % 100);
+                    querypart->children.emplace_back(speed_node);
+
+                    std::cout << "Sending Version Request [ID: " << telemetry_iq.attributes["id"] << "]..." <<
+                            std::endl;
+
+                    lsc.send_iq(telemetry_iq, [](libstrophe_cpp *c, XmppNode response) {
+                        std::cout << "=== Version Response Received ===" << std::endl;
+                        if (response.attributes["type"] == "result") {
+                            // Find the query child and its children (name, version, os)
+                            for (const auto &query: response.children) {
+                                if (query->name == "query") {
+                                    for (const auto &info: query->children) {
+                                        std::cout << info->name << ": " << info->text_content << std::endl;
+                                    }
+                                }
+                            }
+                        } else {
+                            std::cerr << "Version request failed or was not supported." << std::endl;
+                        }
+                    });
+                }
+            });
+            pseudo_telemetry_loop.detach();
+        },
         nullptr
     );
 }

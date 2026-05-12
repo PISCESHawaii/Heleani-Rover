@@ -108,6 +108,46 @@ coco::stray start(saucer::application *app) {
 
         xmpp_client = new libstrophe_cpp(XMPP_LEVEL_DEBUG, jid, password);
 
+        xmpp_client->set_iq_handler(
+            "set", "rover::telemetry",
+            [&webview](libstrophe_cpp *c, XmppNode request) {
+                std::cout << "=== Telemetry Update Received ===" << std::endl;
+
+                // Extract and log the battery, signal, and speed values
+                for (const auto &query: request.children) {
+                    if (query->name == "query") {
+                        for (const auto &stat: query->children) {
+                            if (stat->name == "battery") {
+                                webview->execute("updateBattery({})", stat->text_content);
+                            } else if (stat->name == "signal") {
+                                webview->execute("updateSignal({})", stat->text_content);
+                            } else if (stat->name == "speed") {
+                                webview->execute("updateSpeed({})", stat->text_content);
+                            } else {
+                                webview->execute(
+                                    "addLog(new Date().toLocaleTimeString(), {})",
+                                    std::format("Unknown telemetry stat \"{}\": {}", stat->name,
+                                                stat->text_content)
+                                );
+                            }
+                        }
+                    }
+
+                    // Build the result response
+                    XmppNode resp_query("query");
+                    resp_query.attributes["xmlns"] = "rover::telemetry";
+
+                    XmppNode response("iq");
+                    response.attributes["type"] = "result";
+                    response.attributes["to"] = request.attributes["from"];
+                    response.attributes["id"] = request.attributes["id"];
+                    response.children.emplace_back(std::make_shared<XmppNode>(resp_query));
+
+                    return response;
+                }
+            }
+        );
+
         // 1=success -1=failure 0=pending
         auto success = std::make_shared<std::atomic<char> >(0);
 
@@ -170,6 +210,8 @@ coco::stray start(saucer::application *app) {
 }
 
 // run the app with the defined start loop
+
+
 int main() {
     return saucer::application::create({.id = "rover-fe-cpp"})->run(start);
 }
