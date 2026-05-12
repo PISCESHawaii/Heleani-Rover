@@ -1,7 +1,6 @@
 #ifndef LIBSTROPHE_CPP_TEST_LIBSTROPHE_CPP_H
 #define LIBSTROPHE_CPP_TEST_LIBSTROPHE_CPP_H
 
-#include <memory>
 #include <string>
 #include <strophe.h>
 #include <optional>
@@ -57,6 +56,9 @@ private:
     int conn_err = 0;
     int iq_id_counter = 0;
 
+    std::function<void()> connect_callback_on_success;
+    std::function<void(int, std::string)> connect_callback_on_failure;
+
     std::vector<HandlerEntry> handlers;
     std::unordered_map<std::string, IQHandler> iq_handlers;
     std::unordered_map<std::string, StanzaHandler> iq_response_handlers;
@@ -93,7 +95,12 @@ public:
      *
      * returns the error state of the connection, 0 is a graceful exit.
      */
-    int connect_noexcept();
+    int connect_noexcept(std::function<void()> OnSuccess, std::function<void(int, std::string)> OnFailure);
+
+    void disconnect() {
+        if (conn) xmpp_disconnect(conn);
+        if (ctx) xmpp_stop(ctx);
+    }
 
     void send(const XmppNode &node) const;
 

@@ -207,5 +207,5 @@ int main() {
 
     std::cout << "Connecting to XMPP server as " << jid << "..." << std::endl;
 
-    return lsc.connect_noexcept();
+    return lsc.connect_noexcept(nullptr, nullptr);
 }

@@ -1,4 +1,6 @@
 #include "libstrophe_cpp.h"
+
+#include <cassert>
 #include <iostream>
 
 libstrophe_cpp::libstrophe_cpp(xmpp_log_level_t log_level, const std::string &jid, const std::string &pass)
@@ -82,7 +84,9 @@ void libstrophe_cpp::send(const XmppNode &node) const {
     }
 }
 
-int libstrophe_cpp::connect_noexcept() {
+int libstrophe_cpp::connect_noexcept(std::function<void()> OnSuccess, std::function<void(int, std::string)> OnFailure) {
+    connect_callback_on_success = std::move(OnSuccess);
+    connect_callback_on_failure = std::move(OnFailure);
     xmpp_conn_set_jid(conn, jid.c_str());
     xmpp_conn_set_pass(conn, pass.c_str());
     xmpp_connect_client(conn, nullptr, 0, conn_handler, this);
@@ -106,8 +110,34 @@ void libstrophe_cpp::conn_handler(xmpp_conn_t *conn, xmpp_conn_event_t status, i
          * anyone who changes this (incl. myself) over the head with a frying pan.
          */
         xmpp_handler_add(conn, internal_iq_handler, nullptr, "iq", nullptr, that);
+
+        if (that->connect_callback_on_success)
+            that->connect_callback_on_success();
+        else
+            std::cout << "Connection successful & no callback provided" << std::endl;
     } else {
+        std::string detailed_reason = "Unknown connection error";
+
+        // 1. Check for XMPP Stream Errors (Server-sent reasons)
+        if (stream_error) {
+            // stream_error->text is the human-readable part
+            // stream_error->cnd is the XMPP condition (e.g., "not-authorized")
+            detailed_reason = stream_error->text
+                                  ? stream_error->text
+                                  : "Stream error: " + std::string(stream_error->text);
+        }
+        // 2. Handle specific libstrophe internal failures
+        else if (error != 0) {
+            detailed_reason = std::format("System error code: {}", error);
+        }
+
+        that->conn_err = error;
         xmpp_stop(that->ctx);
+
+        if (that->connect_callback_on_failure) {
+            // You can pass the string to your frontend here!
+            that->connect_callback_on_failure(error, detailed_reason);
+        }
     }
 }
 
