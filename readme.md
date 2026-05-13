@@ -1,5 +1,8 @@
 # Helelani Rover Technical Notes
 
+<img width="850" height="650" alt="image" src="https://github.com/user-attachments/assets/08948c8e-a8c3-40a1-b6a7-018aae2fa745" />
+
+
 This document provides a concise summary of the C++ architecture, dependency chain, and build requirements for the Helelani Rover redesign.
 
 ---
