@@ -7,6 +7,7 @@
 #include <functional>
 #include <vector>
 #include <tuple>
+#include <mutex>
 
 #include "xmpp_node.h"
 

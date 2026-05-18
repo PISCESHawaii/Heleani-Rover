@@ -2,6 +2,7 @@
 #include <iostream>
 #include <string>
 #include <thread>
+#include <unistd.h>
 
 #include "libstrophe_cpp.h"
 #include "xmpp_node.h"

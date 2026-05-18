@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <unistd.h>
 
 // saucer webview shenanigans
 #include <saucer/smartview.hpp>
