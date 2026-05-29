@@ -25,41 +25,7 @@ void handle_message(libstrophe_cpp *client, XmppNode stanza) {
         }
     }
 
-    std::cout << "Received Message: " << message_text << std::endl;
-
-    // 2. Build the Echo Reply using the Fluent API
-    XmppNode reply("message");
-    reply.attributes["to"] = stanza.attributes["from"];
-    reply.attributes["type"] = "chat";
-    XmppNode body("body");
-    body.text_content = "Echo: \"" + message_text + "\"";
-    reply.children.emplace_back(std::make_shared<XmppNode>(body));
-
-    client->send(reply);
-
-    // --- NEW: Version Request IQ Test ---
-    // We send this once to verify our new send_iq logic works.
-    auto version_req = make_iq_query("get", "query", "jabber:iq:version");
-    // version_req.attributes["to"] = stanza.attributes["from"];
-    version_req.attributes["to"] = "pain.agency";
-
-    std::cout << "Sending Version Request [ID: " << version_req.attributes["id"] << "]..." << std::endl;
-
-    client->send_iq(version_req, [](libstrophe_cpp *c, XmppNode response) {
-        std::cout << "=== Version Response Received ===" << std::endl;
-        if (response.attributes["type"] == "result") {
-            // Find the query child and its children (name, version, os)
-            for (const auto &query: response.children) {
-                if (query->name == "query") {
-                    for (const auto &info: query->children) {
-                        std::cout << info->name << ": " << info->text_content << std::endl;
-                    }
-                }
-            }
-        } else {
-            std::cerr << "Version request failed or was not supported." << std::endl;
-        }
-    });
+    std::cout << "Received Unknown Message from " << stanza.attributes["from"] << ": \"" << message_text << "\"\n";
 }
 
 int main() {
@@ -74,6 +40,9 @@ int main() {
     std::getline(file, jid);
     std::getline(file, password);
     file.close();
+
+    std::mutex client_jid_mutex;
+    std::optional<std::string> client_jid_opt = std::nullopt;
 
     // Initialize the client on Fedora
     libstrophe_cpp lsc(XMPP_LEVEL_DEBUG, jid, password);
@@ -210,8 +179,13 @@ int main() {
                        });
 
     lsc.set_iq_handler("get", "rover::getopts",
-                       [](libstrophe_cpp *c, XmppNode request) {
+                       [&](libstrophe_cpp *c, XmppNode request) {
                            std::cout << "Rover options requested" << std::endl;
+
+                           /* TODO: if theres already one associated, error */ {
+                               std::lock_guard lock(client_jid_mutex);
+                               client_jid_opt = request.attributes["from"];
+                           }
 
                            XmppNode query("query");
                            query.attributes["xmlns"] = "rover::getopts";
@@ -252,6 +226,16 @@ int main() {
                            return response;
                        });
 
+    lsc.set_iq_handler("get", "urn:xmpp:ping",
+                       [](libstrophe_cpp *c, XmppNode request) {
+                           std::cout << "Ping request received from " << request.attributes["from"] << std::endl;
+                           XmppNode response("iq");
+                           response.attributes["type"] = "result";
+                           response.attributes["to"] = request.attributes["from"];
+                           response.attributes["id"] = request.attributes["id"];
+                           return response;
+                       });
+
 
     std::cout << "Connecting to XMPP server as " << jid << "..." << std::endl;
 
@@ -264,7 +248,13 @@ int main() {
                     sleep(3);
 
                     auto telemetry_iq = make_iq_query("set", "query", "rover::telemetry");
-                    telemetry_iq.attributes["to"] = client_jid;
+
+                    /* check if its been updated, if no client attached yet, ignore */ {
+                        std::lock_guard lock(client_jid_mutex);
+                        if (!client_jid_opt) continue;
+                        telemetry_iq.attributes["to"] = client_jid_opt.value();
+                    }
+
                     auto querypart = telemetry_iq.find_child("query").value();
 
                     auto battery_node = std::make_shared<XmppNode>(XmppNode("battery"));
