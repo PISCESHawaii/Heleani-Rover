@@ -10,13 +10,11 @@
 #include <mutex>
 
 #include "xmpp_node.h"
+#include "libstrophe_cpp.h"
 
-#define ROVER_LOCALPART "testing"
-#define SERVER_TMP "pain.agency"
-#define ROVER_RESOURCE "helelani"
-
-//foward declaration
-class xmpp_stanza;
+constexpr const std::string ROVER_LOCALPART = "testing";
+constexpr const std::string SERVER_TMP = "pain.agency";
+constexpr const std::string ROVER_RESOURCE = "helelani";
 
 /**
  * Represents a C++ wrapper for the libstrophe library to facilitate XMPP protocol handling.
