@@ -11,6 +11,10 @@
 
 #include "xmpp_node.h"
 
+#define ROVER_LOCALPART "testing"
+#define SERVER_TMP "pain.agency"
+#define ROVER_RESOURCE "helelani"
+
 //foward declaration
 class xmpp_stanza;
 

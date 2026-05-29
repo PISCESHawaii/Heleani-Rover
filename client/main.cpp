@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string>
 #include <unistd.h>
+#include <memory>
 
 // saucer webview shenanigans
 #include <saucer/smartview.hpp>
@@ -10,130 +11,43 @@
 #include "libstrophe_cpp.h"
 #include "xmpp_iq.h"
 
+// other client code
+#include "misc_routing.h"
+
 // auto-display the webview devtools incase the javascript breaks and we need to break in
-#define WEBVIEW_DEBUG_FLAG false
+constexpr bool WEBVIEW_DEBUG_FLAG = false;
 
-std::string COMMAND_REQEST_TYPE = "set";
-#define ROVER_LOCALPART "testing"
-#define SERVER_TMP "pain.agency"
-#define ROVER_RESOURCE "helelani"
+// Helper to populate UI with rover options
+void populate_rover_ui(
+    saucer::smartview &webview,
+    const std::string &video_url,
+    const std::vector<std::pair<std::string, std::string> > &commands
+) {
+    // Set camera iframe with fetched video URL or fallback
+    if (!video_url.empty()) {
+        webview.execute("setCameraIframe({})", video_url);
+    } else {
+        webview.execute("setCameraIframe({})", "https://www.youtube.com/embed/txTRZh_tiYA");
+    }
 
-void log_server_details(saucer::smartview &webview, libstrophe_cpp *xmpp_client) {
-    // --- NEW: Version Request IQ Test ---
-    // We send this once to verify our new send_iq logic works.
-    auto version_req = make_iq_query("get", "query", "jabber:iq:version");
-    version_req.attributes["to"] = xmpp_client->domain;
+    // Log available commands
+    for (const auto &[cmd_id, cmd_name]: commands) {
+        std::cout << "Command: " << cmd_id << " -> " << cmd_name << std::endl;
+    }
 
+    // Populate control buttons with fetched commands
+    if (!commands.empty()) {
+        webview.execute("clearControlButtons()");
 
-    xmpp_client->send_iq(version_req, [&webview](libstrophe_cpp *c, XmppNode response) {
-        std::stringstream versionLog;
-        versionLog << "Server Version:";
-
-        if (response.attributes["type"] == "result") {
-            // Find the query child and its children (name, version, os)
-            for (const auto &query: response.children) {
-                if (query->name == "query") {
-                    for (const auto &info: query->children) {
-                        versionLog << ' ' << info->name << ": " << info->text_content << ';';
-                    }
-                }
-            }
-        } else {
-            versionLog << " Version request failed or was not supported.\n";
+        for (const auto &[cmd_id, cmd_name]: commands) {
+            webview.execute("addControlButton({}, {})", cmd_id, cmd_name);
         }
 
-        // log the freshly fetched details
-        std::cout << versionLog.str() << std::endl;
-        webview.execute("addLog(new Date().toLocaleTimeString(), {})", versionLog.str());
-    });
-}
-
-void fetch_rover_options(saucer::smartview &webview, libstrophe_cpp *xmpp_client,
-                         std::function<void(std::string video_url,
-                                            std::vector<std::pair<std::string, std::string> > commands)> callback) {
-    auto opts_req = make_iq_query("get", "query", "rover::getopts");
-    opts_req.attributes["to"] = std::format("{}@{}/{}", ROVER_LOCALPART, SERVER_TMP, ROVER_RESOURCE);
-
-    std::cout << "Sending rover::getopts request to: " << opts_req.attributes["to"] << std::endl;
-
-    xmpp_client->send_iq(opts_req, [&webview, callback](libstrophe_cpp *c, XmppNode response) {
-        std::cout << "Received response type: " << response.attributes["type"] << std::endl;
-
-        std::string video_url;
-        std::vector<std::pair<std::string, std::string> > commands;
-
-        if (response.attributes["type"] == "result") {
-            std::cout << "Processing result response..." << std::endl;
-            for (const auto &query: response.children) {
-                std::cout << "Child node: " << query->name << std::endl;
-                if (query->name == "query") {
-                    for (const auto &child: query->children) {
-                        std::cout << "Query child: " << child->name << std::endl;
-                        if (child->name == "video_url") {
-                            video_url = child->text_content;
-                            std::cout << "Found video_url: " << video_url << std::endl;
-                        } else if (child->name == "commands") {
-                            std::cout << "Found commands container with " << child->children.size() << " children" <<
-                                    std::endl;
-                            for (const auto &cmd: child->children) {
-                                if (cmd->name == "command") {
-                                    std::string cmd_id = cmd->attributes.contains("id") ? cmd->attributes.at("id") : "";
-                                    std::string cmd_name = cmd->text_content;
-                                    std::cout << "Found command: id=" << cmd_id << ", name=" << cmd_name << std::endl;
-                                    if (!cmd_id.empty()) {
-                                        commands.emplace_back(cmd_id, cmd_name);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            std::cout << "Rover options fetched: video_url=" << video_url << ", commands count=" << commands.size() <<
-                    std::endl;
-            callback(video_url, commands);
-        } else {
-            std::cout << "Failed to fetch rover options - response type: " << response.attributes["type"] << std::endl;
-
-            // Check for error details
-            auto error_node = response.find_child("error");
-            if (error_node.has_value()) {
-                std::cout << "Error details found" << std::endl;
-            }
-
-            callback("", {});
-        }
-    });
-}
-
-void send_command(saucer::smartview &webview, libstrophe_cpp *xmpp_client, std::string command_id) {
-    auto command = make_iq_query(COMMAND_REQEST_TYPE, "query", command_id);
-    command.attributes["to"] = std::format("{}@{}/{}", ROVER_LOCALPART, SERVER_TMP, ROVER_RESOURCE);
-
-    xmpp_client->send_iq(command, [&webview, command_id](libstrophe_cpp *c, XmppNode response) {
-        std::stringstream responseLog;
-        responseLog << command_id;
-
-        auto query_node = response.find_child("query");
-        std::string status = "(null)";
-        if (query_node.has_value()) {
-            auto status_node = query_node.value()->find_child("status");
-            if (status_node.has_value()) {
-                status = status_node.value()->text_content;
-            }
-        }
-        // auto status = status_node.has_value() ? status_node.value().text_content : "(null)";
-
-        if (response.attributes["type"] == "result") {
-            responseLog << " sent successfully, got back status \"" << status << "\"\n";
-        } else {
-            responseLog << " got error status \"" << status << "\"\n";
-        }
-
-        // log the freshly fetched details
-        std::cout << responseLog.str() << std::endl;
-        webview.execute("addLog(new Date().toLocaleTimeString(), {})", responseLog.str());
-    });
+        webview.execute(
+            "addLog(new Date().toLocaleTimeString(), {})",
+            std::format("Loaded {} control commands", commands.size())
+        );
+    }
 }
 
 // saucer startup logic
@@ -151,147 +65,86 @@ coco::stray start(saucer::application *app) {
     window->set_decorations(saucer::window::decoration::partial);
 
     // constant flag controls default state
-    // this is referrring to the webview's browser devtools popout, aka inspect element
+    // this is referring to the webview's browser devtools popout, aka inspect element
     webview->set_dev_tools(WEBVIEW_DEBUG_FLAG);
     webview->expose("toggleDevTools", [&](const bool devtoolsShown) -> void {
         webview->set_dev_tools(devtoolsShown);
     });
 
-    // TODO: free this on window close or whatever else
-    libstrophe_cpp *xmpp_client = nullptr;
+    // Shared pointer for RAII cleanup
+    auto xmpp_client = std::make_shared<libstrophe_cpp *>(nullptr);
 
     // 2. Bindings
-    webview->expose("Login", [&](std::string jid, std::string password, saucer::executor<std::string> exec) -> void {
-        const auto &[resolve, reject] = exec;
+    webview->expose(
+        "Login", [&, xmpp_client](std::string jid, std::string password, saucer::executor<std::string> exec) -> void {
+            const auto &[resolve, reject] = exec;
 
-        std::cout << "Login attempt: " << jid << " " << password << std::endl;
+            std::cout << "Login attempt: " << jid << std::endl;
 
-        xmpp_client = new libstrophe_cpp(XMPP_LEVEL_DEBUG, jid, password);
+            *xmpp_client = new libstrophe_cpp(XMPP_LEVEL_DEBUG, jid, password);
 
-        xmpp_client->set_iq_handler(
-            "set", "rover::telemetry",
-            [&webview](libstrophe_cpp *c, XmppNode request) {
-                std::cout << "=== Telemetry Update Received ===" << std::endl;
+            initialize_telemetry_listener(webview.value(), *xmpp_client);
 
-                // Extract and log the battery, signal, and speed values
-                for (const auto &query: request.children) {
-                    if (query->name == "query") {
-                        for (const auto &stat: query->children) {
-                            if (stat->name == "battery") {
-                                webview->execute("updateBattery({})", stat->text_content);
-                            } else if (stat->name == "signal") {
-                                webview->execute("updateSignal({})", stat->text_content);
-                            } else if (stat->name == "speed") {
-                                webview->execute("updateSpeed({})", stat->text_content);
-                            } else {
-                                webview->execute(
-                                    "addLog(new Date().toLocaleTimeString(), {})",
-                                    std::format("Unknown telemetry stat \"{}\": {}", stat->name,
-                                                stat->text_content)
-                                );
+            // 1=success -1=failure 0=pending
+            auto success = std::make_shared<std::atomic<char> >(0);
+
+            // run libstrophe in a thread
+            std::thread([=, &webview]() {
+                auto stale_client_ptr = *xmpp_client;
+
+                // connect
+                (*xmpp_client)->connect_noexcept(
+                    // when the client connects this will be called
+                    [=, &webview]() {
+                        if (success->exchange(1) != 0) return;
+
+                        log_server_details(webview.value(), *xmpp_client);
+
+                        // Fetch rover options before resolving login
+                        fetch_rover_options(
+                            webview.value(),
+                            *xmpp_client,
+                            [=, &webview](std::string video_url,
+                                          std::vector<std::pair<std::string, std::string> > commands) {
+                                populate_rover_ui(webview.value(), video_url, commands);
+                                resolve("Connected");
                             }
+                        );
+                    },
+                    // if there's a capturable error
+                    [=](const int error, const std::string &detail) {
+                        if (success->exchange(-1) != 0) return;
+
+                        reject(std::format("Connection failed with error: {}\n{}", error, detail));
+
+                        if (*xmpp_client) {
+                            (*xmpp_client)->disconnect();
                         }
                     }
+                );
+
+                std::cout << "client done\n";
+                // cleanup closed client
+                delete stale_client_ptr;
+            }).detach();
+
+            // separate thread to deal with libstrophe blocking on failing dns
+            std::thread([=]() {
+                sleep(10);
+                if (success->exchange(-1) != 0) return;
+
+                reject("Connection timed out");
+
+                if (*xmpp_client) {
+                    (*xmpp_client)->disconnect();
                 }
-                // Build the result response
-                XmppNode resp_query("query");
-                resp_query.attributes["xmlns"] = "rover::telemetry";
-
-                XmppNode response("iq");
-                response.attributes["type"] = "result";
-                response.attributes["to"] = request.attributes["from"];
-                response.attributes["id"] = request.attributes["id"];
-                response.children.emplace_back(std::make_shared<XmppNode>(resp_query));
-
-                return response;
-            }
-        );
-
-        // 1=success -1=failure 0=pending
-        auto success = std::make_shared<std::atomic<char> >(0);
-
-        // run libstrophe in a thread
-        std::thread t([=, &xmpp_client, &webview]() {
-            // keep a stale pointer so that we can clean it up once exited
-            auto stale_client_ptr = xmpp_client;
-
-            // connect
-            xmpp_client->connect_noexcept(
-                // when the client connects this will be called
-                [=, &webview]() {
-                    if (success->exchange(1) != 0) return;
-
-                    // Fetch rover options before resolving login
-                    fetch_rover_options(webview.value(), xmpp_client,
-                                        [=, &webview](std::string video_url,
-                                                      std::vector<std::pair<std::string, std::string> > commands) {
-                                            // Set camera iframe with fetched video URL or fallback
-                                            if (!video_url.empty()) {
-                                                webview->execute("setCameraIframe({})", video_url);
-                                            } else {
-                                                webview->execute("setCameraIframe({})",
-                                                                 "https://www.youtube.com/embed/txTRZh_tiYA");
-                                            }
-
-                                            // Log available commands
-                                            for (const auto &[cmd_id, cmd_name]: commands) {
-                                                std::cout << "Command: " << cmd_id << " -> " << cmd_name << std::endl;
-                                            }
-
-                                            // Populate control buttons with fetched commands
-                                            if (!commands.empty()) {
-                                                // Clear existing buttons first
-                                                webview->execute("clearControlButtons()");
-
-                                                // Add each command button one by one
-                                                for (const auto &[cmd_id, cmd_name]: commands) {
-                                                    webview->execute("addControlButton({}, {})", cmd_id, cmd_name);
-                                                }
-
-                                                webview->execute(
-                                                    "addLog(new Date().toLocaleTimeString(), {})",
-                                                    std::format("Loaded {} control commands", commands.size())
-                                                );
-                                            }
-
-                                            resolve("Connected");
-                                            log_server_details(webview.value(), xmpp_client);
-                                        });
-                },
-                // if theres a capturable error, idk how to reliably get out the error
-                [=, &xmpp_client](const int error, const std::string &detail) {
-                    if (success->exchange(-1) != 0) return;
-                    reject(
-                        std::format("Connection failed with error: {}\n{}", error, detail)
-                    );
-                    if (!xmpp_client) return;
-                    auto old_client = xmpp_client;
-                    xmpp_client = nullptr;
-                    old_client->disconnect();
-                }
-            );
-
-            std::cout << "client done\n";
-            // cleanup closed client
-            if (stale_client_ptr) delete stale_client_ptr;
+            }).detach();
         });
-        t.detach();
 
-        // separate thread to deal with libstrophe blocking on failing dns
-        std::thread timeout([=, &xmpp_client]() {
-            sleep(10);
-            if (success->exchange(-1)) return;
-            reject("Connection timed out");
-            if (!xmpp_client) return;
-            auto old_client = xmpp_client;
-            xmpp_client = nullptr;
-            old_client->disconnect();
-        });
-        timeout.detach();
-    });
-
-    webview->expose("SendCommand", [&](std::string command) {
-        send_command(webview.value(), xmpp_client, command);
+    webview->expose("SendCommand", [&, xmpp_client](std::string command) {
+        if (*xmpp_client) {
+            send_command(webview.value(), *xmpp_client, command);
+        }
     });
 
     // include embedded webview assets and know where to start them
@@ -302,9 +155,6 @@ coco::stray start(saucer::application *app) {
     window->show();
     co_await app->finish();
 }
-
-// run the app with the defined start loop
-
 
 int main() {
     return saucer::application::create({.id = "rover-fe-cpp"})->run(start);
