@@ -93,7 +93,9 @@ public:
     libstrophe_cpp(xmpp_log_level_t log_level, const std::string &jid, const std::string &pass);
 
     //libstrophe specific deallocation
-    ~libstrophe_cpp();
+    ~libstrophe_cpp() {
+        disconnect();
+    }
 
     /**
      * Initiates an XMPP connection using the configured connection instance and runs the associated context.
@@ -109,6 +111,7 @@ public:
     void disconnect() {
         if (conn) xmpp_disconnect(conn);
         if (ctx) xmpp_stop(ctx);
+        xmpp_shutdown();
     }
 
     void send(const XmppNode &node);

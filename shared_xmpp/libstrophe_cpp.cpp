@@ -47,13 +47,6 @@ libstrophe_cpp::libstrophe_cpp(xmpp_log_level_t log_level, const std::string &ji
     xmpp_conn_set_pass(conn, pass.c_str());
 }
 
-// Clean up resources
-libstrophe_cpp::~libstrophe_cpp() {
-    if (conn) xmpp_conn_release(conn);
-    if (ctx) xmpp_ctx_free(ctx);
-    xmpp_shutdown();
-}
-
 /**
  * The Pattern Matcher:
  * Returns true if the criteria matches the stanza's attributes.
