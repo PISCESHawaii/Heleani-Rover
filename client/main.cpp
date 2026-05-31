@@ -1,7 +1,11 @@
+#include <atomic>
 #include <iostream>
-#include <string>
-#include <unistd.h>
 #include <memory>
+#include <mutex>
+#include <string>
+#include <utility>
+#include <thread>
+#include <unistd.h>
 
 // saucer webview shenanigans
 #include <saucer/smartview.hpp>
@@ -16,6 +20,47 @@
 
 // auto-display the webview devtools incase the javascript breaks and we need to break in
 constexpr bool WEBVIEW_DEBUG_FLAG = false;
+
+class XmppClientState {
+public:
+    void replace(std::shared_ptr<libstrophe_cpp> next) {
+        std::shared_ptr<libstrophe_cpp> old; {
+            std::lock_guard lock(mutex_);
+            old = std::exchange(client_, std::move(next));
+        }
+
+        if (old) {
+            old->disconnect();
+        }
+    }
+
+    std::shared_ptr<libstrophe_cpp> get() const {
+        std::lock_guard lock(mutex_);
+        return client_;
+    }
+
+    void clear_if_current(const std::shared_ptr<libstrophe_cpp> &client) {
+        std::lock_guard lock(mutex_);
+        if (client_ == client) {
+            client_.reset();
+        }
+    }
+
+    void disconnect_current() {
+        std::shared_ptr<libstrophe_cpp> client; {
+            std::lock_guard lock(mutex_);
+            client = client_;
+        }
+
+        if (client) {
+            client->disconnect();
+        }
+    }
+
+private:
+    mutable std::mutex mutex_;
+    std::shared_ptr<libstrophe_cpp> client_;
+};
 
 // Helper to populate UI with rover options
 void populate_rover_ui(
@@ -71,39 +116,37 @@ coco::stray start(saucer::application *app) {
         webview->set_dev_tools(devtoolsShown);
     });
 
-    // Shared pointer for RAII cleanup
-    auto xmpp_client = std::make_shared<libstrophe_cpp *>(nullptr);
+    auto xmpp_state = std::make_shared<XmppClientState>();
 
     // 2. Bindings
     webview->expose(
-        "Login", [&, xmpp_client](std::string jid, std::string password, saucer::executor<std::string> exec) -> void {
+        "Login", [&, xmpp_state](std::string jid, std::string password, saucer::executor<std::string> exec) -> void {
             const auto &[resolve, reject] = exec;
 
             std::cout << "Login attempt: " << jid << std::endl;
 
-            *xmpp_client = new libstrophe_cpp(XMPP_LEVEL_DEBUG, jid, password);
+            auto client = std::make_shared<libstrophe_cpp>(XMPP_LEVEL_DEBUG, jid, password);
+            xmpp_state->replace(client);
 
-            initialize_telemetry_listener(webview.value(), *xmpp_client);
+            initialize_telemetry_listener(webview.value(), client.get());
 
             // 1=success -1=failure 0=pending
             auto success = std::make_shared<std::atomic<char> >(0);
 
             // run libstrophe in a thread
             std::thread([=, &webview]() {
-                auto stale_client_ptr = *xmpp_client;
-
                 // connect
-                (*xmpp_client)->connect_noexcept(
+                client->connect_noexcept(
                     // when the client connects this will be called
                     [=, &webview]() {
                         if (success->exchange(1) != 0) return;
 
-                        log_server_details(webview.value(), *xmpp_client);
+                        log_server_details(webview.value(), client.get());
 
                         // Fetch rover options before resolving login
                         fetch_rover_options(
                             webview.value(),
-                            *xmpp_client,
+                            client.get(),
                             [=, &webview](std::string video_url,
                                           std::vector<std::pair<std::string, std::string> > commands) {
                                 populate_rover_ui(webview.value(), video_url, commands);
@@ -116,16 +159,12 @@ coco::stray start(saucer::application *app) {
                         if (success->exchange(-1) != 0) return;
 
                         reject(std::format("Connection failed with error: {}\n{}", error, detail));
-
-                        if (*xmpp_client) {
-                            (*xmpp_client)->disconnect();
-                        }
+                        client->disconnect();
                     }
                 );
 
                 std::cout << "client done\n";
-                // cleanup closed client
-                delete stale_client_ptr;
+                xmpp_state->clear_if_current(client);
             }).detach();
 
             // separate thread to deal with libstrophe blocking on failing dns
@@ -134,16 +173,15 @@ coco::stray start(saucer::application *app) {
                 if (success->exchange(-1) != 0) return;
 
                 reject("Connection timed out");
-
-                if (*xmpp_client) {
-                    (*xmpp_client)->disconnect();
-                }
+                client->disconnect();
             }).detach();
         });
 
-    webview->expose("SendCommand", [&, xmpp_client](std::string command) {
-        if (*xmpp_client) {
-            send_command(webview.value(), *xmpp_client, command);
+    webview->expose("SendCommand", [&, xmpp_state](std::string command) {
+        const auto client = xmpp_state->get();
+
+        if (client) {
+            send_command(webview.value(), client.get(), command);
         }
     });
 

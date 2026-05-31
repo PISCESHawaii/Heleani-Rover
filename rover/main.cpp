@@ -1,3 +1,5 @@
+#include <atomic>
+#include <csignal>
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -46,6 +48,27 @@ int main() {
 
     // Initialize the client on Fedora
     libstrophe_cpp lsc(XMPP_LEVEL_DEBUG, jid, password);
+
+    std::atomic_bool running = true;
+    std::thread pseudo_telemetry_loop;
+
+    sigset_t signal_set;
+    sigemptyset(&signal_set);
+    sigaddset(&signal_set, SIGINT);
+
+    if (pthread_sigmask(SIG_BLOCK, &signal_set, nullptr) != 0) {
+        std::cerr << "Failed to configure SIGINT handling" << std::endl;
+        return 1;
+    }
+
+    std::thread shutdown_thread([&]() {
+        int signal = 0;
+        if (sigwait(&signal_set, &signal) == 0 && signal == SIGINT) {
+            std::cout << "\nCtrl+C received, disconnecting..." << std::endl;
+            running = false;
+            lsc.disconnect();
+        }
+    });
 
     // Register our pattern-matched handler for messages
     // Using nullopt for the namespace to catch all standard client messages
@@ -239,13 +262,14 @@ int main() {
 
     std::cout << "Connecting to XMPP server as " << jid << "..." << std::endl;
 
-    return lsc.connect_noexcept(
+    const int result = lsc.connect_noexcept(
         [&]() {
             std::cout << "Connected!" << std::endl;
 
-            std::thread pseudo_telemetry_loop([&]() {
-                while (true) {
+            pseudo_telemetry_loop = std::thread([&]() {
+                while (running) {
                     sleep(3);
+                    if (!running) break;
 
                     auto telemetry_iq = make_iq_query("set", "query", "rover::telemetry");
 
@@ -289,8 +313,21 @@ int main() {
                     });
                 }
             });
-            pseudo_telemetry_loop.detach();
         },
         nullptr
     );
+
+    running = false;
+
+    if (pseudo_telemetry_loop.joinable()) {
+        pseudo_telemetry_loop.join();
+    }
+
+    // tell the shutdown thread to start shutdown
+    if (shutdown_thread.joinable()) {
+        pthread_kill(shutdown_thread.native_handle(), SIGINT);
+        shutdown_thread.join();
+    }
+
+    return result;
 }

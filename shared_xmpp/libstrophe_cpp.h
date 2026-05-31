@@ -47,6 +47,8 @@ public:
 private:
     std::mutex send_lock;
     std::mutex iq_lock;
+    std::mutex lifecycle_lock;
+    bool disconnected = false;
 
     struct HandlerEntry {
         HandlerCriteria criteria;
@@ -109,9 +111,16 @@ public:
     int connect_noexcept(std::function<void()> OnSuccess, std::function<void(int, std::string)> OnFailure);
 
     void disconnect() {
+        std::lock_guard lock(lifecycle_lock);
+        if (disconnected) return;
+
         if (conn) xmpp_disconnect(conn);
         if (ctx) xmpp_stop(ctx);
-        xmpp_shutdown();
+
+        // DO NOT free the memory here. The event loop in xmpp_run
+        // needs a microsecond to cleanly exit first!
+
+        disconnected = true;
     }
 
     void send(const XmppNode &node);
