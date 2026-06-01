@@ -1,6 +1,7 @@
 add_executable(client_saucer main.cpp
         misc_routing.h
-        misc_routing.cpp)
+        misc_routing.cpp
+        conn_wrapper.h)
 
 # Embed the frontend folder located in this directory
 saucer_embed("webview" TARGET client_saucer)

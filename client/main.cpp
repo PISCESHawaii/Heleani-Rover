@@ -1,7 +1,6 @@
 #include <atomic>
 #include <iostream>
 #include <memory>
-#include <mutex>
 #include <string>
 #include <utility>
 #include <thread>
@@ -16,51 +15,11 @@
 #include "xmpp_iq.h"
 
 // other client code
+#include "conn_wrapper.h"
 #include "misc_routing.h"
 
 // auto-display the webview devtools incase the javascript breaks and we need to break in
 constexpr bool WEBVIEW_DEBUG_FLAG = false;
-
-class XmppClientState {
-public:
-    void replace(std::shared_ptr<libstrophe_cpp> next) {
-        std::shared_ptr<libstrophe_cpp> old; {
-            std::lock_guard lock(mutex_);
-            old = std::exchange(client_, std::move(next));
-        }
-
-        if (old) {
-            old->disconnect();
-        }
-    }
-
-    std::shared_ptr<libstrophe_cpp> get() const {
-        std::lock_guard lock(mutex_);
-        return client_;
-    }
-
-    void clear_if_current(const std::shared_ptr<libstrophe_cpp> &client) {
-        std::lock_guard lock(mutex_);
-        if (client_ == client) {
-            client_.reset();
-        }
-    }
-
-    void disconnect_current() {
-        std::shared_ptr<libstrophe_cpp> client; {
-            std::lock_guard lock(mutex_);
-            client = client_;
-        }
-
-        if (client) {
-            client->disconnect();
-        }
-    }
-
-private:
-    mutable std::mutex mutex_;
-    std::shared_ptr<libstrophe_cpp> client_;
-};
 
 // Helper to populate UI with rover options
 void populate_rover_ui(
