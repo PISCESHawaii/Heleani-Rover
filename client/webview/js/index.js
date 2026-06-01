@@ -197,7 +197,7 @@ function addControlButton(commandId, commandName) {
 		try {
 			await saucer.exposed.SendCommand(command);
 		} catch (err) {
-			addLog(new Date().toLocaleTimeString(), "Error: " + err);
+			addLog(new Date().toLocaleTimeString(), `Error: ${err}`);
 		}
 	});
 
@@ -238,7 +238,7 @@ function populateControlButtons(commands) {
 			try {
 				await saucer.exposed.SendCommand(command);
 			} catch (err) {
-				addLog(new Date().toLocaleTimeString(), "Error: " + err);
+				addLog(new Date().toLocaleTimeString(), `Error: ${err}`);
 			}
 		});
 
@@ -270,7 +270,7 @@ navbar.addEventListener("mousedown", (e) => {
 
 	// Call the Saucer native drag function
 	// Note: Use the exact method name provided by your specific Saucer version (usually start_drag)
-	if (window.saucer && window.saucer.startDrag) {
+	if (window.saucer?.startDrag) {
 		console.log("start drag");
 		window.saucer.startDrag();
 	}
@@ -278,7 +278,7 @@ navbar.addEventListener("mousedown", (e) => {
 
 let devtoolsShown = false;
 
-let debugBtn = document.getElementById("debug-btn");
+const debugBtn = document.getElementById("debug-btn");
 debugBtn.addEventListener("click", () => {
 	devtoolsShown = !devtoolsShown;
 	window.saucer.exposed.toggleDevTools(devtoolsShown);
@@ -340,7 +340,7 @@ submitBtn.addEventListener("click", async () => {
 		overlay.classList.remove("show");
 		loginBtn.textContent = "Waiting for Rover...";
 		loginBtn.disabled = true;
-		addLog(new Date().toLocaleTimeString(), "Logging in as " + jid);
+		addLog(new Date().toLocaleTimeString(), `Logging in as ${jid}`);
 		setControlsEnabled(false);
 	} catch (err) {
 		errorMsg.textContent = err;
@@ -359,7 +359,7 @@ controlButtons.forEach((btn) => {
 			// Call C++ function app.expose("SendCommand", ...)
 			await saucer.exposed.SendCommand(command);
 		} catch (err) {
-			addLog(new Date().toLocaleTimeString(), "Error: " + err);
+			addLog(new Date().toLocaleTimeString(), `Error: ${err}`);
 		}
 	});
 });
@@ -407,7 +407,7 @@ window.updateSpeed = updateSpeed;
 function setCameraIframe(url) {
 	const container = document.getElementById("camera-feed");
 	if (!container) {
-		console.error("Camera container not found: " + containerId);
+		console.error(`Camera container not found: ${containerId}`);
 		return;
 	}
 
