@@ -320,7 +320,7 @@ cancelBtn.addEventListener("click", () => {
 /**
  * BINDINGS: Replaced Wails Go calls with saucer.exposed
  */
-submitBtn.addEventListener("click", async () => {
+async function submitLogin() {
 	const jid = jidInput.value;
 	const password = passwordInput.value;
 
@@ -348,7 +348,20 @@ submitBtn.addEventListener("click", async () => {
 		submitBtn.disabled = false;
 		submitBtn.textContent = "Login";
 	}
-});
+}
+
+// [jidInput, passwordInput].forEach((input) => );
+
+for (const input of [jidInput, passwordInput]) {
+	input.addEventListener("keydown", (event) => {
+		if (event.key === "Enter" && !submitBtn.disabled) {
+			event.preventDefault();
+			submitLogin();
+		}
+	});
+}
+
+submitBtn.addEventListener("click", submitLogin);
 
 controlButtons.forEach((btn) => {
 	btn.addEventListener("click", async () => {

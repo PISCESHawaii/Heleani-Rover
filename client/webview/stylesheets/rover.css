@@ -62,40 +62,47 @@ p#button-theme {
     border-radius: 8px;
 }
 
-/* Top Navigation Bar */
-.navbar {
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    height: 60px;
-    background-color: var(--bg-color);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 24px;
-    border-bottom: 2px solid #2a3358;
-}
+    /* Top Navigation Bar */
+    .navbar {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        height: 60px;
+        background-color: var(--bg-color);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 0 24px;
+        border-bottom: 2px solid #2a3358;
+    }
 
-.navbar h1 {
-    color: var(--button-text);
-    font-size: 20px;
-    font-weight: 600;
-    letter-spacing: 1px;
-}
+    .navbar h1 {
+        color: var(--button-text);
+        font-size: 20px;
+        font-weight: 600;
+        letter-spacing: 1px;
+        line-height: 1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        min-width: 0;
+    }
 
-.nav-actions button {
-    background-color: var(--button-bg);
-    color: #fff;
-    border: 2px solid #3b4a8a;
-    padding: 8px 14px;
-    margin-left: 10px;
-    border-radius: 6px;
-    cursor: pointer;
+    .nav-actions button {
+        background-color: var(--button-bg);
+        color: #fff;
+        border: 2px solid #3b4a8a;
+        padding: 8px 14px;
+        margin-left: 10px;
+        border-radius: 6px;
+        cursor: pointer;
+        flex-shrink: 0;
 }
 
 .nav-actions button:hover {
     background-color: #2b3a78;
-}
+    }
 
 /* Main Layout */
 .dashboard {
@@ -223,10 +230,10 @@ p#button-theme {
 .login-overlay {
     display: none;
     position: fixed;
-    top: 0;
+    top: 60px;
     left: 0;
     width: 100%;
-    height: 100%;
+    height: calc(100% - 60px);
     background: rgba(0, 0, 0, 0.5);
     z-index: 100;
     justify-content: center;
@@ -311,11 +318,12 @@ p#button-theme {
     transform: none;
 }
 
-.window-controls.ghost-style {
-    display: flex;
-    margin-left: 12px;
-    align-items: center;
-}
+    .window-controls.ghost-style {
+        display: flex;
+        margin-left: 12px;
+        align-items: center;
+        flex-shrink: 0;
+    }
 
 .window-controls.ghost-style button {
     background: none;
@@ -344,8 +352,10 @@ p#button-theme {
     color: white;
 }
 
-/* Ensuring the nav-actions container stays aligned */
-.nav-actions {
-    display: flex;
-    align-items: center;
-}
+    /* Ensuring the nav-actions container stays aligned */
+    .nav-actions {
+        display: flex;
+        align-items: center;
+        min-width: 0;
+        flex: 1;
+    }
