@@ -22,6 +22,8 @@
 // auto-display the webview devtools incase the javascript breaks and we need to break in
 constexpr bool WEBVIEW_DEBUG_FLAG = false;
 
+constexpr saucer::size DEFAULT_WINDOW_SIZE = {1000, 720};
+
 constexpr auto ROVER_OPTIONS_RETRY_INTERVAL = std::chrono::seconds(5);
 constexpr auto TELEMETRY_UNREACHABLE_TIMEOUT = std::chrono::seconds(15);
 constexpr auto TELEMETRY_MONITOR_INTERVAL = std::chrono::seconds(2);
@@ -200,6 +202,13 @@ void start_telemetry_monitor(
 // saucer startup logic
 coco::stray start(saucer::application *app) {
     auto window = saucer::window::create(app).value();
+
+    if (!window) {
+        std::cerr << "Failed to create window\n";
+        exit(1);
+    }
+    window->set_size(DEFAULT_WINDOW_SIZE);
+
     auto webview = saucer::smartview::create({.window = window});
 
     if (!webview) {
