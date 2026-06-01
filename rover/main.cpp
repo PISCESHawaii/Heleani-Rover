@@ -4,14 +4,16 @@
 #include <iostream>
 #include <string>
 #include <thread>
-#include <unistd.h>
+#include <random>
+
+#include <chrono>
 
 #include "libstrophe_cpp.h"
 #include "xmpp_node.h"
 #include "xmpp_iq.h"
 
-// TODO: get this from an iq set
-#define client_jid "testing@pain.agency/client"
+constexpr auto TELEMETRY_SEND_INTERVAL = std::chrono::seconds(3);
+constexpr auto TELEMETRY_RESPONSE_TIMEOUT = std::chrono::seconds(15);
 
 /**
  * Message Handler (Echo Bot Logic)
@@ -45,6 +47,12 @@ int main() {
 
     std::mutex client_jid_mutex;
     std::optional<std::string> client_jid_opt = std::nullopt;
+
+    std::atomic_bool telemetry_enabled = false;
+    std::atomic_bool telemetry_response_pending = false;
+    std::chrono::steady_clock::time_point last_telemetry_sent_at{};
+
+    std::mutex telemetry_state_mutex;
 
     // Initialize the client on Fedora
     libstrophe_cpp lsc(XMPP_LEVEL_DEBUG, jid, password);
@@ -208,7 +216,14 @@ int main() {
                            /* TODO: if theres already one associated, error */ {
                                std::lock_guard lock(client_jid_mutex);
                                client_jid_opt = request.attributes["from"];
+                           } {
+                               std::lock_guard lock(telemetry_state_mutex);
+                               telemetry_enabled = true;
+                               telemetry_response_pending = false;
+                               last_telemetry_sent_at = {};
                            }
+
+                           std::cout << "Telemetry enabled for controller: " << request.attributes["from"] << std::endl;
 
                            XmppNode query("query");
                            query.attributes["xmlns"] = "rover::getopts";
@@ -267,9 +282,40 @@ int main() {
             std::cout << "Connected!" << std::endl;
 
             pseudo_telemetry_loop = std::thread([&]() {
+                std::random_device rd;
+                std::mt19937 gen(rd());
+                std::uniform_int_distribution<> distrib(0, 99);
+
                 while (running) {
-                    sleep(3);
-                    if (!running) break;
+                    std::this_thread::sleep_for(TELEMETRY_SEND_INTERVAL);
+                    if (!running) break; {
+                        std::lock_guard lock(telemetry_state_mutex);
+
+                        if (!telemetry_enabled) {
+                            continue;
+                        }
+
+                        if (telemetry_response_pending) {
+                            const auto elapsed = std::chrono::steady_clock::now() - last_telemetry_sent_at;
+
+                            if (elapsed < TELEMETRY_RESPONSE_TIMEOUT) {
+                                continue;
+                            }
+
+                            std::cerr << "Telemetry response timed out." << std::endl;
+                            std::cerr << "Would abort all current rover actions now." << std::endl;
+                            std::cerr << "Stopping telemetry until a new rover::getopts request is received." <<
+                                    std::endl;
+
+                            telemetry_enabled = false;
+                            telemetry_response_pending = false; {
+                                std::lock_guard client_lock(client_jid_mutex);
+                                client_jid_opt = std::nullopt;
+                            }
+
+                            continue;
+                        }
+                    }
 
                     auto telemetry_iq = make_iq_query("set", "query", "rover::telemetry");
 
@@ -282,33 +328,49 @@ int main() {
                     auto querypart = telemetry_iq.find_child("query").value();
 
                     auto battery_node = std::make_shared<XmppNode>(XmppNode("battery"));
-                    battery_node->text_content = std::to_string(rand() % 100);
+                    battery_node->text_content = std::to_string(distrib(gen));
                     querypart->children.emplace_back(battery_node);
 
                     auto signal_node = std::make_shared<XmppNode>(XmppNode("signal"));
-                    signal_node->text_content = std::to_string(rand() % 100);
+                    signal_node->text_content = std::to_string(distrib(gen));
                     querypart->children.emplace_back(signal_node);
 
                     auto speed_node = std::make_shared<XmppNode>(XmppNode("speed"));
-                    speed_node->text_content = std::to_string(rand() % 100);
+                    speed_node->text_content = std::to_string(distrib(gen));
                     querypart->children.emplace_back(speed_node);
+                    
 
-                    std::cout << "Sending Version Request [ID: " << telemetry_iq.attributes["id"] << "]..." <<
-                            std::endl;
+                    std::cout << "Sending telemetry [ID: " << telemetry_iq.attributes["id"] << "]..." <<
+                            std::endl; {
+                        std::lock_guard lock(telemetry_state_mutex);
+                        telemetry_response_pending = true;
+                        last_telemetry_sent_at = std::chrono::steady_clock::now();
+                    }
 
-                    lsc.send_iq(telemetry_iq, [](libstrophe_cpp *c, XmppNode response) {
-                        std::cout << "=== Version Response Received ===" << std::endl;
+                    lsc.send_iq(telemetry_iq, [&](libstrophe_cpp *c, XmppNode response) {
+                        std::lock_guard lock(telemetry_state_mutex);
+
+                        if (!telemetry_enabled) {
+                            std::cout << "Ignoring telemetry response because telemetry is disabled." << std::endl;
+                            return;
+                        }
+
+                        telemetry_response_pending = false;
+
+                        std::cout << "=== Telemetry Response Received ===" << std::endl;
+
                         if (response.attributes["type"] == "result") {
-                            // Find the query child and its children (name, version, os)
-                            for (const auto &query: response.children) {
-                                if (query->name == "query") {
-                                    for (const auto &info: query->children) {
-                                        std::cout << info->name << ": " << info->text_content << std::endl;
-                                    }
-                                }
-                            }
+                            std::cout << "Telemetry acknowledged by controller." << std::endl;
                         } else {
-                            std::cerr << "Version request failed or was not supported." << std::endl;
+                            std::cerr << "Telemetry request failed or was not supported." << std::endl;
+                            std::cerr << "Would abort all current rover actions now." << std::endl;
+                            std::cerr << "Stopping telemetry until a new rover::getopts request is received." <<
+                                    std::endl;
+
+                            telemetry_enabled = false; {
+                                std::lock_guard client_lock(client_jid_mutex);
+                                client_jid_opt = std::nullopt;
+                            }
                         }
                     });
                 }
