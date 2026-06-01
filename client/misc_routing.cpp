@@ -1,12 +1,29 @@
 //
 // Created by joseph on 5/27/26.
 //
-#include "misc_routing.h"
+#include <iostream>
 
-void initialize_telemetry_listener(saucer::smartview &webview, libstrophe_cpp *xmpp_client) {
+#include "misc_routing.h"
+#include "xmpp_iq.h"
+
+namespace {
+    int64_t steady_now_ms() {
+        return std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now().time_since_epoch()
+        ).count();
+    }
+}
+
+void initialize_telemetry_listener(
+    saucer::smartview &webview,
+    libstrophe_cpp *xmpp_client,
+    std::shared_ptr<std::atomic<int64_t> > last_telemetry_ms
+) {
     xmpp_client->set_iq_handler(
         "set", "rover::telemetry",
-        [&webview](libstrophe_cpp *c, XmppNode request) {
+        [&webview, last_telemetry_ms](libstrophe_cpp *c, XmppNode request) {
+            last_telemetry_ms->store(steady_now_ms(), std::memory_order_relaxed);
+
             std::cout << "=== Telemetry Update Received ===" << std::endl;
 
             // Extract and log the battery, signal, and speed values
@@ -67,6 +84,7 @@ void fetch_rover_options(
     libstrophe_cpp *xmpp_client,
     std::function<
         void(
+            bool success,
             std::string video_url,
             std::vector<std::pair<std::string, std::string> > commands
         )> callback
@@ -80,11 +98,28 @@ void fetch_rover_options(
         std::cout << "Received response type: " << response.attributes["type"] << std::endl;
 
         if (response.attributes["type"] != "result") {
-            std::cout << "Failed to fetch rover options - response type: " << response.attributes["type"] << std::endl;
-            if (auto error_node = response.find_child("error"); error_node.has_value()) {
-                std::cout << "Error details found" << std::endl;
+            std::stringstream errorLog;
+            errorLog << "Rover options request failed";
+
+            if (response.attributes.contains("type")) {
+                errorLog << " with response type \"" << response.attributes["type"] << "\"";
             }
-            callback("", {});
+
+            if (auto error_node = response.find_child("error"); error_node.has_value()) {
+                if (error_node.value()->attributes.contains("type")) {
+                    errorLog << ", error type \"" << error_node.value()->attributes["type"] << "\"";
+                }
+
+                for (const auto &child: error_node.value()->children) {
+                    errorLog << ", condition \"" << child->name << "\"";
+                    break;
+                }
+            }
+
+            std::cout << errorLog.str() << std::endl;
+            webview.execute("addLog(new Date().toLocaleTimeString(), {})", errorLog.str());
+
+            callback(false, "", {});
             return;
         }
 
@@ -121,7 +156,7 @@ void fetch_rover_options(
 
         std::cout << "Rover options fetched: video_url=" << video_url << ", commands count=" << commands.size() <<
                 std::endl;
-        callback(video_url, commands);
+        callback(true, video_url, commands);
     });
 }
 

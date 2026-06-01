@@ -27,6 +27,139 @@ function setControlsEnabled(enabled) {
 	});
 }
 
+function getOrCreateRoverWarningOverlay() {
+	let warningOverlay = document.getElementById("rover-warning-overlay");
+
+	if (warningOverlay) {
+		return warningOverlay;
+	}
+
+	warningOverlay = document.createElement("div");
+	warningOverlay.id = "rover-warning-overlay";
+	warningOverlay.style.position = "fixed";
+	warningOverlay.style.inset = "0";
+	warningOverlay.style.background = "rgba(0, 0, 0, 0.55)";
+	warningOverlay.style.zIndex = "999";
+	warningOverlay.style.display = "none";
+	warningOverlay.style.alignItems = "center";
+	warningOverlay.style.justifyContent = "center";
+	warningOverlay.style.pointerEvents = "none";
+
+	const warningBox = document.createElement("div");
+	warningBox.style.maxWidth = "520px";
+	warningBox.style.padding = "24px 28px";
+	warningBox.style.borderRadius = "12px";
+	warningBox.style.background = "#2b1d1d";
+	warningBox.style.color = "#ffffff";
+	warningBox.style.boxShadow = "0 12px 40px rgba(0, 0, 0, 0.35)";
+	warningBox.style.border = "1px solid #ff6b6b";
+	warningBox.style.textAlign = "center";
+
+	const title = document.createElement("h2");
+	title.id = "rover-warning-title";
+	title.textContent = "Rover Unavailable";
+	title.style.marginTop = "0";
+
+	const message = document.createElement("p");
+	message.id = "rover-warning-message";
+	message.textContent = "Waiting for the rover to become reachable...";
+	message.style.marginBottom = "0";
+
+	warningBox.appendChild(title);
+	warningBox.appendChild(message);
+	warningOverlay.appendChild(warningBox);
+	document.body.appendChild(warningOverlay);
+
+	return warningOverlay;
+}
+
+function showRoverWarning(
+	title = "Rover Unavailable",
+	message = "Waiting for the rover to become reachable...",
+) {
+	const warningOverlay = getOrCreateRoverWarningOverlay();
+	const warningTitle = document.getElementById("rover-warning-title");
+	const warningMessage = document.getElementById("rover-warning-message");
+
+	warningTitle.textContent = title;
+	warningMessage.textContent = message;
+	warningOverlay.style.display = "flex";
+}
+
+function hideRoverWarning() {
+	const warningOverlay = document.getElementById("rover-warning-overlay");
+
+	if (warningOverlay) {
+		warningOverlay.style.display = "none";
+	}
+}
+
+function resetStatusFields() {
+	statusBattery.textContent = "Battery: --%";
+	statusBattery.style.color = "";
+	statusSignal.textContent = "Signal: --";
+	statusSpeed.textContent = "Speed: --";
+}
+
+function clearCameraIframe() {
+	const container = document.getElementById("camera-feed");
+	if (!container) {
+		console.error("Camera container not found");
+		return;
+	}
+
+	const iframe = container.querySelector("iframe");
+	if (iframe) {
+		iframe.remove();
+	}
+}
+
+function markRoverWaiting() {
+	loginBtn.textContent = "Waiting for Rover...";
+	loginBtn.disabled = true;
+
+	submitBtn.disabled = false;
+	submitBtn.textContent = "Login";
+
+	setControlsEnabled(false);
+	clearControlButtons();
+	resetStatusFields();
+	clearCameraIframe();
+
+	showRoverWarning(
+		"Waiting for Rover",
+		"Connected to XMPP. Waiting for the rover to come online...",
+	);
+}
+
+function markRoverReachable() {
+	loginBtn.textContent = "Connected";
+	loginBtn.disabled = true;
+
+	hideRoverWarning();
+	setControlsEnabled(true);
+}
+
+function markRoverUnreachable() {
+	loginBtn.textContent = "Waiting for Rover...";
+	loginBtn.disabled = true;
+
+	submitBtn.disabled = false;
+	submitBtn.textContent = "Login";
+
+	setControlsEnabled(false);
+	clearControlButtons();
+	resetStatusFields();
+	clearCameraIframe();
+
+	showRoverWarning(
+		"Rover Unreachable",
+		"Telemetry has stopped. Waiting for the rover to come back online...",
+	);
+
+	addLog(new Date().toLocaleTimeString(), "Rover is unreachable");
+}
+
 function addLog(time, message) {
 	logBox.innerHTML += `<br/>[${time}] ${message}`;
 	logBox.scrollTop = logBox.scrollHeight;
@@ -74,6 +207,11 @@ function addControlButton(commandId, commandName) {
 // Expose to be called from C++
 window.clearControlButtons = clearControlButtons;
 window.addControlButton = addControlButton;
+window.markRoverWaiting = markRoverWaiting;
+window.markRoverReachable = markRoverReachable;
+window.markRoverUnreachable = markRoverUnreachable;
+window.showRoverWarning = showRoverWarning;
+window.hideRoverWarning = hideRoverWarning;
 
 function populateControlButtons(commands) {
 	const controlGrid = document.getElementById("control-grid");
@@ -200,10 +338,10 @@ submitBtn.addEventListener("click", async () => {
 		await saucer.exposed.Login(jid, password);
 
 		overlay.classList.remove("show");
-		loginBtn.textContent = "Connected";
+		loginBtn.textContent = "Waiting for Rover...";
 		loginBtn.disabled = true;
 		addLog(new Date().toLocaleTimeString(), "Logging in as " + jid);
-		setControlsEnabled(true);
+		setControlsEnabled(false);
 	} catch (err) {
 		errorMsg.textContent = err;
 		errorMsg.classList.add("show");

@@ -1,19 +1,17 @@
-//
-// Created by joseph on 5/27/26.
-//
-
 #ifndef HELELANIROVER_MISC_ROUTING_H
 #define HELELANIROVER_MISC_ROUTING_H
-#include <iostream>
+#include <atomic>
+#include <chrono>
+#include <memory>
 
 #include "saucer/smartview.hpp"
 #include "libstrophe_cpp.h"
-#include "xmpp_iq.h"
 
 
 void initialize_telemetry_listener(
     saucer::smartview &webview,
-    libstrophe_cpp *xmpp_client
+    libstrophe_cpp *xmpp_client,
+    std::shared_ptr<std::atomic<int64_t> > last_telemetry_ms
 );
 
 void log_server_details(
@@ -26,6 +24,7 @@ void fetch_rover_options(
     libstrophe_cpp *xmpp_client,
     std::function<
         void(
+            bool success,
             std::string video_url,
             std::vector<std::pair<std::string, std::string> > commands
         )> callback
