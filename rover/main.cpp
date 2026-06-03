@@ -458,7 +458,7 @@ int main() {
                     }
 
                     // Build the telemetry IQ stanza with rover status data
-                    auto telemetry_iq = make_iq_query("set", "query", "rover::telemetry");
+                    XmppNode telemetry_iq = make_iq_query("set", "query", "rover::telemetry");
 
                     // Set the destination to the registered controller
                     // Skip if no controller is registered (shouldn't happen due to earlier check)
@@ -469,10 +469,10 @@ int main() {
                     }
 
                     // Add telemetry data fields to the query
-                    auto querypart = telemetry_iq.find_child("query").value();
+                    std::shared_ptr<XmppNode> querypart = telemetry_iq.find_child("query").value();
 
                     // Battery level (0-99) - simulated with random value
-                    auto battery_node = std::make_shared<XmppNode>(XmppNode("battery"));
+                    std::shared_ptr<XmppNode> battery_node = std::make_shared<XmppNode>(XmppNode("battery"));
                     battery_node->text_content = std::to_string(distrib(gen));
                     querypart->children.emplace_back(battery_node);
 
