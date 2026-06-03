@@ -1,6 +1,27 @@
 /**
- * PIVOT NOTE: We removed the Wails imports.
- * Saucer automatically injects 'window.saucer' into the page.
+ * Frontend control script for the PICSES Helelani Rover UI.
+ *
+ * This file manages the browser-side behavior of the Saucer webview interface:
+ * - Login dialog handling
+ * - Native window controls
+ * - Theme switching
+ * - Rover connectivity status UI
+ * - Telemetry display updates
+ * - Camera iframe updates
+ * - Dynamic rover command buttons
+ * - Calls into C++ through `window.saucer.exposed`
+ *
+ * C++ also calls several functions exposed on `window`, including:
+ * - `addLog(...)`
+ * - `clearControlButtons()`
+ * - `addControlButton(...)`
+ * - `markRoverWaiting()`
+ * - `markRoverReachable()`
+ * - `markRoverUnreachable()`
+ * - `updateBattery(...)`
+ * - `updateSignal(...)`
+ * - `updateSpeed(...)`
+ * - `setCameraIframe(...)`
  */
 const saucer = window.saucer;
 
@@ -20,6 +41,16 @@ const statusBattery = document.getElementById("status-battery");
 const statusSignal = document.getElementById("status-signal");
 const statusSpeed = document.getElementById("status-speed");
 
+/**
+ * Enables or disables all rover control buttons.
+ *
+ * This is used while the user is disconnected, while the application is waiting
+ * for the rover handshake, and when telemetry timeout marks the rover as
+ * unreachable.
+ *
+ * @param {boolean} enabled Whether rover control buttons should be enabled.
+ * @returns {void}
+ */
 function setControlsEnabled(enabled) {
 	const buttons = document.querySelectorAll(".control-grid button");
 	buttons.forEach((btn) => {
@@ -27,6 +58,15 @@ function setControlsEnabled(enabled) {
 	});
 }
 
+/**
+ * Gets the rover warning overlay, creating it if it does not already exist.
+ *
+ * The overlay is used to show blocking rover-state messages such as "Waiting for
+ * Rover" or "Rover Unreachable". It is created dynamically so the HTML does not
+ * need to contain the warning markup up front.
+ *
+ * @returns {HTMLDivElement} The rover warning overlay element.
+ */
 function getOrCreateRoverWarningOverlay() {
 	let warningOverlay = document.getElementById("rover-warning-overlay");
 
@@ -73,6 +113,16 @@ function getOrCreateRoverWarningOverlay() {
 	return warningOverlay;
 }
 
+/**
+ * Displays the rover warning overlay with the provided title and message.
+ *
+ * This function is exposed on `window` so native C++ code can update the UI when
+ * the rover is waiting, unreachable, or otherwise unavailable.
+ *
+ * @param {string} [title="Rover Unavailable"] Warning title to display.
+ * @param {string} [message="Waiting for the rover to become reachable..."] Warning body text.
+ * @returns {void}
+ */
 function showRoverWarning(
 	title = "Rover Unavailable",
 	message = "Waiting for the rover to become reachable...",
@@ -86,6 +136,14 @@ function showRoverWarning(
 	warningOverlay.style.display = "flex";
 }
 
+/**
+ * Hides the rover warning overlay if it exists.
+ *
+ * This function is exposed on `window` so C++ can clear the warning after the
+ * rover options handshake succeeds.
+ *
+ * @returns {void}
+ */
 function hideRoverWarning() {
 	const warningOverlay = document.getElementById("rover-warning-overlay");
 
@@ -94,6 +152,13 @@ function hideRoverWarning() {
 	}
 }
 
+/**
+ * Resets displayed telemetry fields to their unknown/default values.
+ *
+ * Called when waiting for the rover or when the rover becomes unreachable.
+ *
+ * @returns {void}
+ */
 function resetStatusFields() {
 	statusBattery.textContent = "Battery: --%";
 	statusBattery.style.color = "";
@@ -101,6 +166,13 @@ function resetStatusFields() {
 	statusSpeed.textContent = "Speed: --";
 }
 
+/**
+ * Removes the current camera iframe from the camera feed container.
+ *
+ * This clears stale video when the rover is not currently reachable.
+ *
+ * @returns {void}
+ */
 function clearCameraIframe() {
 	const container = document.getElementById("camera-feed");
 	if (!container) {
@@ -114,6 +186,16 @@ function clearCameraIframe() {
 	}
 }
 
+/**
+ * Updates the UI to indicate that XMPP is connected but the rover handshake has
+ * not completed yet.
+ *
+ * This is called by C++ after login succeeds and before rover options have been
+ * fetched. It disables command controls, clears stale rover UI, and shows a
+ * waiting overlay.
+ *
+ * @returns {void}
+ */
 function markRoverWaiting() {
 	loginBtn.textContent = "Waiting for Rover...";
 	loginBtn.disabled = true;
@@ -132,6 +214,13 @@ function markRoverWaiting() {
 	);
 }
 
+/**
+ * Updates the UI to indicate that the rover is reachable and ready for commands.
+ *
+ * This is called by C++ after the rover options handshake succeeds.
+ *
+ * @returns {void}
+ */
 function markRoverReachable() {
 	loginBtn.textContent = "Connected";
 	loginBtn.disabled = true;
@@ -140,6 +229,15 @@ function markRoverReachable() {
 	setControlsEnabled(true);
 }
 
+/**
+ * Updates the UI to indicate that the rover has become unreachable.
+ *
+ * This is called by C++ when telemetry has not been received within the timeout
+ * window. It disables controls, clears stale camera/telemetry data, shows a
+ * warning overlay, and logs the event.
+ *
+ * @returns {void}
+ */
 function markRoverUnreachable() {
 	loginBtn.textContent = "Waiting for Rover...";
 	loginBtn.disabled = true;
@@ -160,6 +258,16 @@ function markRoverUnreachable() {
 	addLog(new Date().toLocaleTimeString(), "Rover is unreachable");
 }
 
+/**
+ * Appends a timestamped message to the UI log.
+ *
+ * This function is exposed on `window` so C++ can log connection status,
+ * handshake status, server details, command results, and telemetry diagnostics.
+ *
+ * @param {string} time Human-readable timestamp to display.
+ * @param {string} message Log message to append.
+ * @returns {void}
+ */
 function addLog(time, message) {
 	logBox.innerHTML += `<br/>[${time}] ${message}`;
 	logBox.scrollTop = logBox.scrollHeight;
@@ -168,6 +276,14 @@ function addLog(time, message) {
 // make accessible from saucer
 window.addLog = addLog;
 
+/**
+ * Removes all dynamically generated rover control buttons.
+ *
+ * This function is exposed on `window` and called by C++ before repopulating the
+ * command grid after a successful rover options handshake.
+ *
+ * @returns {void}
+ */
 function clearControlButtons() {
 	const controlGrid = document.getElementById("control-grid");
 	if (!controlGrid) {
@@ -177,6 +293,17 @@ function clearControlButtons() {
 	controlGrid.innerHTML = "";
 }
 
+/**
+ * Adds a single rover command button to the control grid.
+ *
+ * The created button calls the C++ `SendCommand` binding with the command ID
+ * when clicked. C++ generates these buttons from the command list returned by
+ * the rover options handshake.
+ *
+ * @param {string} commandId Command identifier to send to the rover.
+ * @param {string} commandName Human-readable label shown on the button.
+ * @returns {void}
+ */
 function addControlButton(commandId, commandName) {
 	const controlGrid = document.getElementById("control-grid");
 	if (!controlGrid) {
@@ -189,7 +316,6 @@ function addControlButton(commandId, commandName) {
 	button.textContent = commandName;
 	button.disabled = false;
 
-	// Add click handler
 	button.addEventListener("click", async () => {
 		const command = button.dataset.command;
 		if (!command) return;
@@ -213,6 +339,16 @@ window.markRoverUnreachable = markRoverUnreachable;
 window.showRoverWarning = showRoverWarning;
 window.hideRoverWarning = hideRoverWarning;
 
+/**
+ * Replaces the control grid with buttons for the provided rover commands.
+ *
+ * This helper accepts an array of `[commandId, commandName]` tuples. It is kept
+ * available as a bulk population API, although the current C++ flow may populate
+ * buttons one at a time with `addControlButton(...)`.
+ *
+ * @param {Array<[string, string]>} commands List of command ID/name pairs.
+ * @returns {void}
+ */
 function populateControlButtons(commands) {
 	const controlGrid = document.getElementById("control-grid");
 	if (!controlGrid) {
@@ -220,17 +356,14 @@ function populateControlButtons(commands) {
 		return;
 	}
 
-	// Clear existing buttons
 	controlGrid.innerHTML = "";
 
-	// Create a button for each command
 	commands.forEach(([commandId, commandName]) => {
 		const button = document.createElement("button");
 		button.dataset.command = commandId;
 		button.textContent = commandName;
-		button.disabled = false; // Enable after login
+		button.disabled = false;
 
-		// Add click handler
 		button.addEventListener("click", async () => {
 			const command = button.dataset.command;
 			if (!command) return;
@@ -256,10 +389,15 @@ window.populateControlButtons = populateControlButtons;
 
 const navbar = document.querySelector(".navbar");
 
+/**
+ * Starts native window dragging when the user drags the custom navbar.
+ *
+ * Clicks on buttons and links inside the navbar are ignored so window controls
+ * remain clickable.
+ */
 navbar.addEventListener("mousedown", (e) => {
 	console.log("mousedown");
 
-	// Prevent dragging if the user clicks a button or a link inside the navbar
 	if (
 		e.target.tagName === "BUTTON" ||
 		e.target.tagName === "A" ||
@@ -268,8 +406,6 @@ navbar.addEventListener("mousedown", (e) => {
 		return;
 	}
 
-	// Call the Saucer native drag function
-	// Note: Use the exact method name provided by your specific Saucer version (usually start_drag)
 	if (window.saucer?.startDrag) {
 		console.log("start drag");
 		window.saucer.startDrag();
@@ -279,6 +415,12 @@ navbar.addEventListener("mousedown", (e) => {
 let devtoolsShown = false;
 
 const debugBtn = document.getElementById("debug-btn");
+
+/**
+ * Toggles the native webview developer tools.
+ *
+ * Calls the C++ `toggleDevTools` binding exposed through Saucer.
+ */
 debugBtn.addEventListener("click", () => {
 	devtoolsShown = !devtoolsShown;
 	window.saucer.exposed.toggleDevTools(devtoolsShown);
@@ -290,18 +432,26 @@ const minBtn = document.getElementById("min-btn");
 const maxBtn = document.getElementById("max-btn");
 const closeBtn = document.getElementById("close-btn");
 
+/**
+ * Minimizes the native application window.
+ */
 minBtn.addEventListener("click", () => {
 	window.saucer.minimize(true);
 });
 
+/**
+ * Toggles the native application window between maximized and restored states.
+ */
 maxBtn.addEventListener("click", () => {
 	isMaximized = !isMaximized;
 	window.saucer.maximize(isMaximized);
 
-	// Optional: Toggle symbol between '▢' and '❐'
 	maxBtn.textContent = isMaximized ? "❐" : "▢";
 });
 
+/**
+ * Closes the native application window.
+ */
 closeBtn.addEventListener("click", () => {
 	window.saucer.close();
 });
@@ -318,7 +468,14 @@ cancelBtn.addEventListener("click", () => {
 });
 
 /**
- * BINDINGS: Replaced Wails Go calls with saucer.exposed
+ * Submits the login form to the C++ `Login` binding.
+ *
+ * On success, the XMPP connection has been established and the application will
+ * wait for the rover options handshake. On failure, the error returned by C++ is
+ * displayed in the login dialog.
+ *
+ * @async
+ * @returns {Promise<void>}
  */
 async function submitLogin() {
 	const jid = jidInput.value;
@@ -334,7 +491,6 @@ async function submitLogin() {
 	submitBtn.textContent = "Connecting...";
 
 	try {
-		// Call C++ function app.expose("Login", ...)
 		await saucer.exposed.Login(jid, password);
 
 		overlay.classList.remove("show");
@@ -349,8 +505,6 @@ async function submitLogin() {
 		submitBtn.textContent = "Login";
 	}
 }
-
-// [jidInput, passwordInput].forEach((input) => );
 
 for (const input of [jidInput, passwordInput]) {
 	input.addEventListener("keydown", (event) => {
@@ -369,7 +523,6 @@ controlButtons.forEach((btn) => {
 		if (!command) return;
 
 		try {
-			// Call C++ function app.expose("SendCommand", ...)
 			await saucer.exposed.SendCommand(command);
 		} catch (err) {
 			addLog(new Date().toLocaleTimeString(), `Error: ${err}`);
@@ -378,22 +531,33 @@ controlButtons.forEach((btn) => {
 });
 
 /**
- * Status Update Functions
- * These are mapped to the status elements defined at the top of the file.
+ * Updates one or more telemetry status fields.
+ *
+ * This function is exposed on `window` for native calls. Individual fields are
+ * only updated when their corresponding argument is not `undefined`.
+ *
+ * @param {number|string|undefined} battery Battery percentage.
+ * @param {string|number|undefined} signal Signal strength label or value.
+ * @param {string|number|undefined} speed Rover speed value.
+ * @returns {void}
  */
-
-// Update all status fields at once
 function updateStatus(battery, signal, speed) {
 	if (battery !== undefined) window.updateBattery(battery);
 	if (signal !== undefined) window.updateSignal(signal);
 	if (speed !== undefined) window.updateSpeed(speed);
 }
 
-// Update Battery: expects a number (e.g., 85)
+/**
+ * Updates the displayed rover battery level.
+ *
+ * Values below 20 are displayed in red to warn the operator.
+ *
+ * @param {number|string} level Battery percentage.
+ * @returns {void}
+ */
 function updateBattery(level) {
 	statusBattery.textContent = `Battery: ${level}%`;
 
-	// Optional: Add a visual warning if low
 	if (level < 20) {
 		statusBattery.style.color = "#ff4d4d";
 	} else {
@@ -401,12 +565,22 @@ function updateBattery(level) {
 	}
 }
 
-// Update Signal: expects a string or level (e.g., "Excellent" or "4/5")
+/**
+ * Updates the displayed rover signal strength.
+ *
+ * @param {string|number} strength Signal strength value, such as `"Excellent"` or `"4/5"`.
+ * @returns {void}
+ */
 function updateSignal(strength) {
 	statusSignal.textContent = `Signal: ${strength}`;
 }
 
-// Update Speed: expects a value (e.g., "1.2 m/s")
+/**
+ * Updates the displayed rover speed.
+ *
+ * @param {string|number} value Speed value, such as `"1.2 m/s"`.
+ * @returns {void}
+ */
 function updateSpeed(value) {
 	statusSpeed.textContent = `Speed: ${value}`;
 }
@@ -417,14 +591,22 @@ window.updateBattery = updateBattery;
 window.updateSignal = updateSignal;
 window.updateSpeed = updateSpeed;
 
+/**
+ * Creates or updates the camera feed iframe.
+ *
+ * C++ calls this after fetching rover options. If the rover provides a camera
+ * stream URL, that URL is loaded. Otherwise, C++ may provide a fallback URL.
+ *
+ * @param {string} url URL to load into the camera iframe.
+ * @returns {void}
+ */
 function setCameraIframe(url) {
 	const container = document.getElementById("camera-feed");
 	if (!container) {
-		console.error(`Camera container not found: ${containerId}`);
+		console.error("Camera container not found");
 		return;
 	}
 
-	// Look for an existing iframe or create a new one
 	let iframe = container.querySelector("iframe");
 	if (!iframe) {
 		iframe = document.createElement("iframe");
@@ -440,12 +622,18 @@ function setCameraIframe(url) {
 
 window.setCameraIframe = setCameraIframe;
 
-// Theme toggle (Standard JS, no changes needed)
+// Theme toggle
 const toggleButton = document.getElementById("theme-toggle");
 const body = document.body;
 const themeKey = "theme";
 const darkModeClass = "dark-mode";
 
+/**
+ * Applies and persists the selected UI theme.
+ *
+ * @param {"dark"|"light"} theme Theme name to apply.
+ * @returns {void}
+ */
 function setTheme(theme) {
 	if (theme === "dark") {
 		body.classList.add(darkModeClass);
@@ -456,6 +644,9 @@ function setTheme(theme) {
 	}
 }
 
+/**
+ * Toggles between light and dark themes.
+ */
 toggleButton.addEventListener("click", () => {
 	body.classList.contains(darkModeClass) ? setTheme("light") : setTheme("dark");
 });
