@@ -47,27 +47,6 @@ libstrophe_cpp::libstrophe_cpp(xmpp_log_level_t log_level, const std::string &ji
     xmpp_conn_set_pass(conn, pass.c_str());
 }
 
-// void libstrophe_cpp::disconnect() {
-//     std::lock_guard lock(lifecycle_lock);
-//     if (disconnected) return;
-//
-//     if (conn) {
-//         xmpp_disconnect(conn);
-//         xmpp_conn_release(conn); // Free the connection memory
-//         conn = nullptr;
-//     }
-//
-//     if (ctx) {
-//         xmpp_stop(ctx);
-//         xmpp_ctx_free(ctx); // Free the context memory (fixes the 112k leak!)
-//         ctx = nullptr;
-//     }
-//
-//     xmpp_shutdown();
-//
-//     disconnected = true;
-// }
-
 /**
  * The Pattern Matcher:
  * Returns true if the criteria matches the stanza's attributes.
