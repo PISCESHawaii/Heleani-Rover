@@ -12,9 +12,9 @@
 #include "xmpp_node.h"
 #include "libstrophe_cpp.h"
 
-constexpr const std::string ROVER_LOCALPART = "testing";
-constexpr const std::string SERVER_TMP = "pain.agency";
-constexpr const std::string ROVER_RESOURCE = "helelani";
+constexpr std::string ROVER_LOCALPART = "testing";
+constexpr std::string SERVER_TMP = "pain.agency";
+constexpr std::string ROVER_RESOURCE = "helelani";
 
 /**
  * Represents a C++ wrapper for the libstrophe library to facilitate XMPP protocol handling.
@@ -84,9 +84,9 @@ private:
     static void conn_handler(xmpp_conn_t *conn, xmpp_conn_event_t status, int error,
                              xmpp_stream_error_t *stream_error, void *userdata);
 
-    static int global_stanza_handler(xmpp_conn_t *conn, xmpp_stanza_t *stanza, void *userdata);
+    static int global_stanza_handler([[maybe_unused]] xmpp_conn_t *conn, xmpp_stanza_t *stanza, void *userdata);
 
-    static int internal_iq_handler(xmpp_conn_t *conn, xmpp_stanza_t *stanza, void *userdata);
+    static int internal_iq_handler([[maybe_unused]] xmpp_conn_t *conn, xmpp_stanza_t *stanza, void *userdata);
 
 public:
     std::string localpart;

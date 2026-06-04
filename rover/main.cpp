@@ -46,7 +46,7 @@ constexpr auto TELEMETRY_RESPONSE_TIMEOUT = std::chrono::seconds(15);
  * Message Handler (Echo Bot Logic)
  * Now uses the clean XmppNode instead of raw pointers.
  */
-void handle_message(libstrophe_cpp *client, XmppNode stanza) {
+void handle_message([[maybe_unused]] libstrophe_cpp *client, XmppNode stanza) {
     // Parse incoming XMPP message to extract the body content
     // Default to "no body" if the message doesn't contain a body element
     std::string message_text = "no body";
@@ -152,7 +152,7 @@ int main() {
     // This allows other clients to discover what software this rover is running
     // this is not currently used by anything
     lsc.set_iq_handler("get", "jabber:iq:version",
-                       [](libstrophe_cpp *c, XmppNode request) {
+                       []([[maybe_unused]] libstrophe_cpp *c, XmppNode request) {
                            // Create the query element with the version namespace
                            XmppNode query("query");
                            query.attributes["xmlns"] = "jabber:iq:version";
@@ -187,7 +187,7 @@ int main() {
     // Handle forward movement command
     // In a real rover, this would activate forward motor control
     lsc.set_iq_handler("set", "rover::movements::forward",
-                       [](libstrophe_cpp *c, XmppNode request) {
+                       []([[maybe_unused]] libstrophe_cpp *c, XmppNode request) {
                            // Log the received command for debugging and audit trail
                            std::cout << "Rover command: FORWARD" << std::endl;
 
@@ -212,7 +212,7 @@ int main() {
     // Handle turn right command
     // This would control the rover's turning mechanism to rotate right
     lsc.set_iq_handler("set", "rover::movements::turn_right",
-                       [](libstrophe_cpp *c, XmppNode request) {
+                       []([[maybe_unused]] libstrophe_cpp *c, XmppNode request) {
                            std::cout << "Rover command: TURN RIGHT" << std::endl;
 
                            // Follow same response pattern as other movement commands
@@ -233,7 +233,7 @@ int main() {
     // Handle backward movement command
     // This reverses the rover's direction
     lsc.set_iq_handler("set", "rover::movements::backward",
-                       [](libstrophe_cpp *c, XmppNode request) {
+                       []([[maybe_unused]] libstrophe_cpp *c, XmppNode request) {
                            std::cout << "Rover command: BACKWARD" << std::endl;
 
                            XmppNode query("query");
@@ -253,7 +253,7 @@ int main() {
     // Handle left turn command
     // Rotates the rover counter-clockwise
     lsc.set_iq_handler("set", "rover::movements::left",
-                       [](libstrophe_cpp *c, XmppNode request) {
+                       []([[maybe_unused]] libstrophe_cpp *c, XmppNode request) {
                            std::cout << "Rover command: LEFT" << std::endl;
 
                            XmppNode query("query");
@@ -273,7 +273,7 @@ int main() {
     // Handle stop command - critical for safety
     // should immediately halt all rover movement
     lsc.set_iq_handler("set", "rover::movements::stop",
-                       [](libstrophe_cpp *c, XmppNode request) {
+                       []([[maybe_unused]] libstrophe_cpp *c, XmppNode request) {
                            std::cout << "Rover command: STOP" << std::endl;
 
                            XmppNode query("query");
@@ -293,7 +293,7 @@ int main() {
     // Handle right turn command (clockwise rotation)
     // Similar to turn_right, but may have different implementation details
     lsc.set_iq_handler("set", "rover::movements::right",
-                       [](libstrophe_cpp *c, XmppNode request) {
+                       []([[maybe_unused]] libstrophe_cpp *c, XmppNode request) {
                            std::cout << "Rover command: RIGHT" << std::endl;
 
                            XmppNode query("query");
@@ -313,7 +313,7 @@ int main() {
     // Handle rover options request - this is the controller's handshake
     // When a controller requests options, it's registering itself for telemetry
     lsc.set_iq_handler("get", "rover::getopts",
-                       [&](libstrophe_cpp *c, XmppNode request) {
+                       [&]([[maybe_unused]] libstrophe_cpp *c, XmppNode request) {
                            std::cout << "Rover options requested" << std::endl;
 
                            /* TODO: if theres already one associated, error */
@@ -383,7 +383,7 @@ int main() {
     // Handle XMPP ping requests (XEP-0199)
     // Pings are used to verify the connection is alive and measure latency
     lsc.set_iq_handler("get", "urn:xmpp:ping",
-                       [](libstrophe_cpp *c, XmppNode request) {
+                       []([[maybe_unused]] libstrophe_cpp *c, XmppNode request) {
                            std::cout << "Ping request received from " << request.attributes["from"] << std::endl;
 
                            // Respond with an empty result IQ (a "pong")
@@ -411,7 +411,7 @@ int main() {
                 // In a real rover, this would read actual sensor values
                 std::random_device rd;
                 std::mt19937 gen(rd());
-                std::uniform_int_distribution<> distrib(0, 99);
+                std::uniform_int_distribution distrib(0, 99);
 
                 // Main telemetry loop - runs until shutdown
                 while (running) {
@@ -469,10 +469,10 @@ int main() {
                     }
 
                     // Add telemetry data fields to the query
-                    std::shared_ptr<XmppNode> querypart = telemetry_iq.find_child("query").value();
+                    const std::shared_ptr<XmppNode> querypart = telemetry_iq.find_child("query").value();
 
                     // Battery level (0-99) - simulated with random value
-                    std::shared_ptr<XmppNode> battery_node = std::make_shared<XmppNode>(XmppNode("battery"));
+                    auto battery_node = std::make_shared<XmppNode>(XmppNode("battery"));
                     battery_node->text_content = std::to_string(distrib(gen));
                     querypart->children.emplace_back(battery_node);
 
@@ -498,7 +498,7 @@ int main() {
                     }
 
                     // Send the telemetry IQ and register a callback for the response
-                    lsc.send_iq(telemetry_iq, [&](libstrophe_cpp *c, XmppNode response) {
+                    lsc.send_iq(telemetry_iq, [&]([[maybe_unused]] libstrophe_cpp *c, XmppNode response) {
                         std::lock_guard lock(telemetry_state_mutex);
 
                         // Ignore late responses if telemetry was disabled due to timeout

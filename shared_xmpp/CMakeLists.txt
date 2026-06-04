@@ -19,6 +19,8 @@ add_library(shared_xmpp STATIC
 target_include_directories(shared_xmpp PUBLIC .)
 target_include_directories(shared_xmpp PUBLIC "$ENV{HOME}/.local/include")
 
+target_compile_options(shared_xmpp PRIVATE ${PEDANTIC_COMPILER_FLAGS})
+
 # 3. Link the static strophe file directly
 # We also link its dependencies so the linker is happy
 target_link_libraries(shared_xmpp PUBLIC

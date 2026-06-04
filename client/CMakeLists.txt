@@ -6,9 +6,11 @@ add_executable(client_saucer main.cpp
 # Embed the frontend folder located in this directory
 saucer_embed("webview" TARGET client_saucer)
 
+target_compile_options(client_saucer PRIVATE ${PEDANTIC_COMPILER_FLAGS})
+
 # Link both the UI framework and your XMPP logic
 target_link_libraries(client_saucer PRIVATE
-    saucer::saucer
-    saucer::embedded
-    shared_xmpp
+        saucer::saucer
+        saucer::embedded
+        shared_xmpp
 )

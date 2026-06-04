@@ -51,7 +51,7 @@ XmppNode XmppNode::from_libstrophe(xmpp_stanza_t *s) {
     // Attributes
     int attr_count = xmpp_stanza_get_attribute_count(s);
     if (attr_count > 0) {
-        auto attrs = std::make_unique<const char *[]>(attr_count * 2);
+        const auto attrs = std::make_unique<const char *[]>(attr_count * 2);
         xmpp_stanza_get_attributes(s, attrs.get(), attr_count * 2);
         for (int i = 0; i < attr_count * 2; i += 2) {
             node.attributes[attrs[i]] = attrs[i + 1];
@@ -62,8 +62,7 @@ XmppNode XmppNode::from_libstrophe(xmpp_stanza_t *s) {
     xmpp_stanza_t *child = xmpp_stanza_get_children(s);
     while (child) {
         if (xmpp_stanza_is_text(child)) {
-            char *text = xmpp_stanza_get_text(child);
-            if (text) {
+            if (char *text = xmpp_stanza_get_text(child)) {
                 node.text_content += text;
                 xmpp_free(xmpp_stanza_get_context(s), text);
             }

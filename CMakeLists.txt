@@ -3,12 +3,18 @@ project(HelelaniRover)
 
 set(CMAKE_CXX_STANDARD 23)
 
+# for .clang-tidy
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+# Define your strict rules
+set(PEDANTIC_COMPILER_FLAGS -Wall -Wextra -Wpedantic)
+
 # Global Saucer Setup
 include(FetchContent)
 FetchContent_Declare(
-    saucer
-    GIT_REPOSITORY https://github.com/saucer/saucer.git
-    GIT_TAG master
+        saucer
+        GIT_REPOSITORY https://github.com/saucer/saucer.git
+        GIT_TAG master
 )
 FetchContent_MakeAvailable(saucer)
 

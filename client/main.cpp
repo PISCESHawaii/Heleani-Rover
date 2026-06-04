@@ -57,6 +57,12 @@ constexpr auto TELEMETRY_UNREACHABLE_TIMEOUT = std::chrono::seconds(15);
 // 2-second interval provides responsive detection without excessive CPU usage.
 constexpr auto TELEMETRY_MONITOR_INTERVAL = std::chrono::seconds(2);
 
+// this gets deduced as a long, but im afraid to specify that since i know longs are different on windows
+// so good luck compiler, I believe in you
+constexpr auto timeout_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+    TELEMETRY_UNREACHABLE_TIMEOUT
+).count();
+
 namespace {
     // Returns current time in milliseconds since epoch using steady_clock.
     // We use steady_clock (not system_clock) because it's monotonic and won't
@@ -269,9 +275,6 @@ void start_telemetry_monitor(
 
             // Calculate how long it's been since we last received telemetry
             const auto elapsed_ms = steady_now_ms() - last_telemetry_ms->load(std::memory_order_relaxed);
-            const auto timeout_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-                TELEMETRY_UNREACHABLE_TIMEOUT
-            ).count();
 
             // If we're still receiving telemetry within the timeout window, continue monitoring
             if (elapsed_ms <= timeout_ms) {
@@ -386,13 +389,13 @@ coco::stray start(saucer::application *app) {
 
             // Create XMPP client with debug logging enabled.
             // The client is wrapped in a shared_ptr so it stays alive across threads.
-            auto client = std::make_shared<libstrophe_cpp>(XMPP_LEVEL_DEBUG, jid, password);
+            const auto client = std::make_shared<libstrophe_cpp>(XMPP_LEVEL_DEBUG, jid, password);
 
             // Initialize telemetry timestamp to now to avoid immediate timeout
-            auto last_telemetry_ms = std::make_shared<std::atomic<int64_t> >(steady_now_ms());
+            const auto last_telemetry_ms = std::make_shared<std::atomic<int64_t> >(steady_now_ms());
 
             // Track whether we've marked the rover as unreachable (starts false)
-            auto rover_marked_unreachable = std::make_shared<std::atomic<bool> >(false);
+            const auto rover_marked_unreachable = std::make_shared<std::atomic<bool> >(false);
 
             // Register this client as the current connection (invalidates any previous client)
             xmpp_state->replace(client);
@@ -402,7 +405,7 @@ coco::stray start(saucer::application *app) {
 
             // Atomic flag to track connection status: 0=pending, 1=success, -1=failure.
             // We use atomic because multiple threads (connection thread and timeout thread) access it.
-            auto success = std::make_shared<std::atomic<char> >(0);
+           const auto success = std::make_shared<std::atomic<char> >(0);
 
             // Spawn the XMPP client thread to run libstrophe's event loop.
             // This must be in a separate thread because libstrophe blocks.
@@ -477,7 +480,7 @@ coco::stray start(saucer::application *app) {
      * This retrieves the current XMPP client (if any) and sends the command to the rover.
      * If no client is connected, the command is silently ignored (user shouldn't have buttons anyway).
      */
-    webview->expose("SendCommand", [&, xmpp_state](std::string command) {
+    webview->expose("SendCommand", [&, xmpp_state](const std::string &command) {
         // Safely retrieve the current XMPP client (returns nullptr if disconnected)
         const auto client = xmpp_state->get();
 

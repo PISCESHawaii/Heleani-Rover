@@ -9,7 +9,7 @@
 // Keep your clean ID generator!
 inline std::string get_next_iq_id() {
     static std::atomic<uint32_t> sequence{1000};
-    uint32_t val = sequence.fetch_add(1);
+    const uint32_t val = sequence.fetch_add(1);
 
     std::stringstream ss;
     ss << "iq-0x" << std::hex << std::setw(8) << std::setfill('0') << val;

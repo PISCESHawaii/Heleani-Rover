@@ -187,16 +187,13 @@ function clearCameraIframe() {
 }
 
 /**
- * Updates the UI to indicate that XMPP is connected but the rover handshake has
- * not completed yet.
+ * Disables UI elements and resets rover-related state.
  *
- * This is called by C++ after login succeeds and before rover options have been
- * fetched. It disables command controls, clears stale rover UI, and shows a
- * waiting overlay.
+ * This function is used to prepare the UI for waiting for the rover or when the rover becomes unreachable.
  *
  * @returns {void}
  */
-function markRoverWaiting() {
+function disableUI() {
 	loginBtn.textContent = "Waiting for Rover...";
 	loginBtn.disabled = true;
 
@@ -207,6 +204,20 @@ function markRoverWaiting() {
 	clearControlButtons();
 	resetStatusFields();
 	clearCameraIframe();
+}
+
+/**
+ * Updates the UI to indicate that XMPP is connected but the rover handshake has
+ * not completed yet.
+ *
+ * This is called by C++ after login succeeds and before rover options have been
+ * fetched. It disables command controls, clears stale rover UI, and shows a
+ * waiting overlay.
+ *
+ * @returns {void}
+ */
+function markRoverWaiting() {
+	disableUI();
 
 	showRoverWarning(
 		"Waiting for Rover",
@@ -239,16 +250,7 @@ function markRoverReachable() {
  * @returns {void}
  */
 function markRoverUnreachable() {
-	loginBtn.textContent = "Waiting for Rover...";
-	loginBtn.disabled = true;
-
-	submitBtn.disabled = false;
-	submitBtn.textContent = "Login";
-
-	setControlsEnabled(false);
-	clearControlButtons();
-	resetStatusFields();
-	clearCameraIframe();
+	disableUI()
 
 	showRoverWarning(
 		"Rover Unreachable",

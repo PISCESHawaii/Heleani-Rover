@@ -23,7 +23,7 @@ public:
     std::unordered_map<std::string, std::string> attributes;
     std::vector<std::shared_ptr<XmppNode> > children;
 
-    XmppNode(std::string n = "") : name(std::move(n)) {
+    explicit XmppNode(std::string n = "") : name(std::move(n)) {
     }
 
     /**
@@ -38,7 +38,7 @@ public:
      * @return A pointer to the first child node matching the specified tag name,
      *         or nullptr if no match is found.
      */
-    std::optional<std::shared_ptr<XmppNode> > find_child(const std::string &tag_name) {
+    std::optional<std::shared_ptr<XmppNode> > find_child(const std::string &tag_name) const {
         for (auto child: children) {
             if (child->name == tag_name) return child;
         }

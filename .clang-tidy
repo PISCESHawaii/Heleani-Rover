@@ -1,0 +1,25 @@
+---
+InheritParentConfig: false
+
+# This regex ensures clang-tidy only lints files within your subdirectories
+# (shared_xmpp, rover, client) and ignores third-party stuff like saucer.
+HeaderFilterRegex: '.*(shared_xmpp|rover|client).*'
+
+Checks: >
+  *,
+  -abseil-*,
+  -altera-*,
+  -android-*,
+  -darwin-*,
+  -fuchsia-*,
+  -google-objc-*,
+  -llvm-*,
+  -llvmlibc-*,
+  -zircon-*,
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic,
+  -readability-magic-numbers
+
+CheckOptions:
+  - key:             performance-unnecessary-value-param.AllowedTypes
+    value:           'std::shared_ptr'
+...
