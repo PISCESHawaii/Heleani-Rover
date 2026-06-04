@@ -10,6 +10,11 @@
 #include "misc_routing.h"
 #include "xmpp_iq.h"
 
+// some bs to make clang-tidy more happy with the way saucer does js format strings
+using saucer_serializer = saucer::serializers::glaze::serializer;
+template<typename... Args>
+using saucer_format_string = saucer::format_string<saucer_serializer, Args...>;
+
 // Anonymous namespace for internal helper functions
 // Keeps steady_now_ms() private to this translation unit
 namespace {
@@ -35,7 +40,7 @@ void initialize_telemetry_listener(
     // The rover sends telemetry updates as IQ-set stanzas
     xmpp_client->set_iq_handler(
         "set", "rover::telemetry",
-        [&webview, last_telemetry_ms](libstrophe_cpp *c, XmppNode request) {
+        [&webview, last_telemetry_ms]([[maybe_unused]] libstrophe_cpp *c, XmppNode request) {
             // Update the timestamp to track when we last received telemetry
             // Uses relaxed memory ordering since exact ordering isn't critical for this timestamp
             last_telemetry_ms->store(steady_now_ms(), std::memory_order_relaxed);
@@ -50,15 +55,24 @@ void initialize_telemetry_listener(
                     // Update the corresponding UI element based on stat name
                     // Each stat calls a specific JavaScript function in the webview
                     if (stat->name == "battery") {
-                        webview.execute("updateBattery({})", stat->text_content);
+                        webview.execute(
+                            saucer_format_string<const std::string &>{"updateBattery({})"},
+                            stat->text_content
+                        );
                     } else if (stat->name == "signal") {
-                        webview.execute("updateSignal({})", stat->text_content);
+                        webview.execute(
+                            saucer_format_string<const std::string &>{"updateSignal({})"},
+                            stat->text_content
+                        );
                     } else if (stat->name == "speed") {
-                        webview.execute("updateSpeed({})", stat->text_content);
+                        webview.execute(
+                            saucer_format_string<const std::string &>{"updateSpeed({})"},
+                            stat->text_content
+                        );
                     } else {
                         // Log unknown telemetry types to help debug unexpected data
                         webview.execute(
-                            "addLog(new Date().toLocaleTimeString(), {})",
+                            saucer_format_string<const std::string &>{"addLog(new Date().toLocaleTimeString(), {})"},
                             std::format("Unknown telemetry stat \"{}\": {}", stat->name,
                                         stat->text_content)
                         );
@@ -89,7 +103,7 @@ void log_server_details(saucer::smartview &webview, libstrophe_cpp *xmpp_client)
     version_req.attributes["to"] = xmpp_client->domain;
 
     // Send the query and handle the response asynchronously
-    xmpp_client->send_iq(version_req, [&webview](libstrophe_cpp *c, XmppNode response) {
+    xmpp_client->send_iq(version_req, [&webview]([[maybe_unused]] libstrophe_cpp *c, XmppNode response) {
         std::stringstream versionLog;
         versionLog << "Server Version:";
 
@@ -109,7 +123,10 @@ void log_server_details(saucer::smartview &webview, libstrophe_cpp *xmpp_client)
 
         // Log the result both to console and the webview UI
         std::cout << versionLog.str() << std::endl;
-        webview.execute("addLog(new Date().toLocaleTimeString(), {})", versionLog.str());
+        webview.execute(
+            saucer_format_string<const std::string &>{"addLog(new Date().toLocaleTimeString(), {})"},
+            versionLog.str()
+        );
     });
 }
 
@@ -136,7 +153,7 @@ void fetch_rover_options(
     std::cout << "Sending rover::getopts request to: " << opts_req.attributes["to"] << std::endl;
 
     // Send the query and handle the response asynchronously
-    xmpp_client->send_iq(opts_req, [&webview, callback](libstrophe_cpp *c, XmppNode response) {
+    xmpp_client->send_iq(opts_req, [&webview, callback]([[maybe_unused]] libstrophe_cpp *c, XmppNode response) {
         std::cout << "Received response type: " << response.attributes["type"] << std::endl;
 
         // Check if the response indicates an error or non-result type
@@ -166,7 +183,10 @@ void fetch_rover_options(
 
             // Log the error and notify caller via callback with failure status
             std::cout << errorLog.str() << std::endl;
-            webview.execute("addLog(new Date().toLocaleTimeString(), {})", errorLog.str());
+            webview.execute(
+                saucer_format_string<const std::string &>{"addLog(new Date().toLocaleTimeString(), {})"},
+                errorLog.str()
+            );
 
             callback(false, "", {});
             return;
@@ -234,7 +254,7 @@ void send_command(saucer::smartview &webview, libstrophe_cpp *xmpp_client, std::
     command.attributes["to"] = std::format("{}@{}/{}", ROVER_LOCALPART, SERVER_TMP, ROVER_RESOURCE);
 
     // Send the command and handle the rover's response
-    xmpp_client->send_iq(command, [&webview, command_id](libstrophe_cpp *c, XmppNode response) {
+    xmpp_client->send_iq(command, [&webview, command_id]([[maybe_unused]] libstrophe_cpp *c, XmppNode response) {
         std::stringstream responseLog;
         responseLog << command_id;
 
@@ -259,6 +279,9 @@ void send_command(saucer::smartview &webview, libstrophe_cpp *xmpp_client, std::
 
         // Log the command result both to console and the webview command log
         std::cout << responseLog.str() << std::endl;
-        webview.execute("addLog(new Date().toLocaleTimeString(), {})", responseLog.str());
+        webview.execute(
+            saucer_format_string<const std::string &>{"addLog(new Date().toLocaleTimeString(), {})"},
+            responseLog.str()
+        );
     });
 }

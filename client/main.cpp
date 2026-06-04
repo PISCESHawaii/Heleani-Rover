@@ -63,6 +63,12 @@ constexpr auto timeout_ms = std::chrono::duration_cast<std::chrono::milliseconds
     TELEMETRY_UNREACHABLE_TIMEOUT
 ).count();
 
+// some bs to make clang-tidy more happy with the way saucer does js format strings
+using saucer_serializer = saucer::serializers::glaze::serializer;
+template<typename... Args>
+using saucer_format_string = saucer::format_string<saucer_serializer, Args...>;
+
+
 namespace {
     // Returns current time in milliseconds since epoch using steady_clock.
     // We use steady_clock (not system_clock) because it's monotonic and won't
@@ -93,9 +99,15 @@ void populate_rover_ui(
     // If the rover doesn't provide a video URL, fall back to a placeholder YouTube video (for now).
     // This prevents showing a broken iframe when camera is unavailable.
     if (!video_url.empty()) {
-        webview.execute("setCameraIframe({})", video_url);
+        webview.execute(
+            saucer_format_string<const std::string &>{"setCameraIframe({})"},
+            video_url
+        );
     } else {
-        webview.execute("setCameraIframe({})", "https://www.youtube.com/embed/txTRZh_tiYA");
+        webview.execute(
+            saucer_format_string<const std::string &>{"setCameraIframe({})"},
+            "https://www.youtube.com/embed/txTRZh_tiYA"
+        );
     }
 
     // Log all available commands to the console for debugging purposes.
@@ -108,16 +120,20 @@ void populate_rover_ui(
     // This allows different rovers to have different command sets without UI changes.
     if (!commands.empty()) {
         // Clear any existing buttons first to avoid duplicates on reconnection
-        webview.execute("clearControlButtons()");
+        webview.execute(saucer_format_string<>{"clearControlButtons()"});
 
         // Create a button for each command with its ID and display name
         for (const auto &[cmd_id, cmd_name]: commands) {
-            webview.execute("addControlButton({}, {})", cmd_id, cmd_name);
+            webview.execute(
+                saucer_format_string<const std::string &, const std::string &>{"addControlButton({}, {})"},
+                cmd_id,
+                cmd_name
+            );
         }
 
         // Log success message to the UI's command log so users know commands are ready
         webview.execute(
-            "addLog(new Date().toLocaleTimeString(), {})",
+            saucer_format_string<const std::string &>{"addLog(new Date().toLocaleTimeString(), {})"},
             std::format("Loaded {} control commands", commands.size())
         );
     }
@@ -158,9 +174,9 @@ void start_rover_options_retry_loop(
     // We capture webview by reference (&) and shared_ptrs by value to ensure proper lifetime.
     std::thread([&, xmpp_state, client, last_telemetry_ms, rover_marked_unreachable]() {
         // Update UI to show we're waiting for the rover to respond
-        webview.execute("markRoverWaiting()");
+        webview.execute(saucer_format_string<>{"markRoverWaiting()"});
         webview.execute(
-            "addLog(new Date().toLocaleTimeString(), {})",
+            saucer_format_string<const std::string &>{"addLog(new Date().toLocaleTimeString(), {})"},
             "Waiting for rover options handshake..."
         );
 
@@ -199,9 +215,9 @@ void start_rover_options_retry_loop(
                     last_telemetry_ms->store(steady_now_ms(), std::memory_order_relaxed);
 
                     // Update UI to show rover is now reachable
-                    webview.execute("markRoverReachable()");
+                    webview.execute(saucer_format_string<>{"markRoverReachable()"});
                     webview.execute(
-                        "addLog(new Date().toLocaleTimeString(), {})",
+                        saucer_format_string<const std::string &>{"addLog(new Date().toLocaleTimeString(), {})"},
                         "Rover options handshake succeeded"
                     );
 
@@ -234,7 +250,7 @@ void start_rover_options_retry_loop(
 
             // Request failed and we're still connected, so log the failure and retry after a delay
             webview.execute(
-                "addLog(new Date().toLocaleTimeString(), {})",
+                saucer_format_string<const std::string &>{"addLog(new Date().toLocaleTimeString(), {})"},
                 "Rover options handshake failed; retrying..."
             );
 
@@ -292,9 +308,9 @@ void start_telemetry_monitor(
             std::cout << "Rover marked unreachable: telemetry timeout" << std::endl;
 
             // Update UI to show the rover is no longer reachable
-            webview.execute("markRoverUnreachable()");
+            webview.execute(saucer_format_string<>{"markRoverUnreachable()"});
             webview.execute(
-                "addLog(new Date().toLocaleTimeString(), {})",
+                saucer_format_string<const std::string &>{"addLog(new Date().toLocaleTimeString(), {})"},
                 "Telemetry timeout; waiting for rover to return"
             );
 
@@ -405,7 +421,7 @@ coco::stray start(saucer::application *app) {
 
             // Atomic flag to track connection status: 0=pending, 1=success, -1=failure.
             // We use atomic because multiple threads (connection thread and timeout thread) access it.
-           const auto success = std::make_shared<std::atomic<char> >(0);
+            const auto success = std::make_shared<std::atomic<char> >(0);
 
             // Spawn the XMPP client thread to run libstrophe's event loop.
             // This must be in a separate thread because libstrophe blocks.
@@ -422,7 +438,7 @@ coco::stray start(saucer::application *app) {
                         log_server_details(webview.value(), client.get());
 
                         // Update UI to show we're waiting for rover handshake
-                        webview->execute("markRoverWaiting()");
+                        webview->execute(saucer_format_string<>{"markRoverWaiting()"});
 
                         // Start attempting to handshake with the rover
                         start_rover_options_retry_loop(
