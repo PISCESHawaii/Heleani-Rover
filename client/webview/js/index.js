@@ -546,7 +546,11 @@ function updateTelemetry(key, value) {
 		return;
 	}
 
-	telemetryState.set(label, { value: value, last_received: Date.now(), warned: false });
+	telemetryState.set(label, {
+		value: value,
+		last_received: Date.now(),
+		warned: false,
+	});
 
 	let row = telemetryRows.get(label);
 
