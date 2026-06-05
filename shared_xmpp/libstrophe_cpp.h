@@ -13,7 +13,6 @@
 #include "libstrophe_cpp.h"
 
 constexpr std::string ROVER_LOCALPART = "testing";
-constexpr std::string SERVER_TMP = "pain.agency";
 constexpr std::string ROVER_RESOURCE = "helelani";
 
 /**

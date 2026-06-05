@@ -130,7 +130,7 @@ void fetch_rover_options(
     // Address the query to the specific rover's full JID (localpart@domain/resource)
     // This ensures we target the correct rover instance
     // TODO: properly fetch these values
-    opts_req.attributes["to"] = std::format("{}@{}/{}", ROVER_LOCALPART, SERVER_TMP, ROVER_RESOURCE);
+    opts_req.attributes["to"] = std::format("{}@{}/{}", ROVER_LOCALPART, xmpp_client->domain, ROVER_RESOURCE);
 
     std::cout << "Sending rover::getopts request to: " << opts_req.attributes["to"] << std::endl;
 
@@ -233,7 +233,7 @@ void send_command(saucer::smartview &webview, libstrophe_cpp *xmpp_client, std::
     // This allows the rover to route different commands to appropriate handlers
     XmppNode command = make_iq_query(COMMAND_REQEST_TYPE, "query", command_id);
     // Address the command to the specific rover instance
-    command.attributes["to"] = std::format("{}@{}/{}", ROVER_LOCALPART, SERVER_TMP, ROVER_RESOURCE);
+    command.attributes["to"] = std::format("{}@{}/{}", ROVER_LOCALPART, xmpp_client->domain, ROVER_RESOURCE);
 
     // Send the command and handle the rover's response
     xmpp_client->send_iq(command, [&webview, command_id]([[maybe_unused]] libstrophe_cpp *c, XmppNode response) {
