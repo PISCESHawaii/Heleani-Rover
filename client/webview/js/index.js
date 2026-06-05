@@ -39,11 +39,7 @@ const controlButtons = document.querySelectorAll(".control-grid button");
 // Telemetry elements
 const telemetryList = document.getElementById("telemetry-list");
 const telemetryRows = new Map();
-
-// Status elements
-const statusBattery = document.getElementById("status-battery");
-const statusSignal = document.getElementById("status-signal");
-const statusSpeed = document.getElementById("status-speed");
+const telemetryState = new Map();
 
 /**
  * Enables or disables all rover control buttons.
@@ -171,6 +167,7 @@ function resetStatusFields() {
 
 	telemetryList.innerHTML = "";
 	telemetryRows.clear();
+	telemetryState.clear();
 }
 
 /**
@@ -549,17 +546,42 @@ function updateTelemetry(key, value) {
 		return;
 	}
 
+	telemetryState.set(label, { value: value, last_received: Date.now(), warned: false });
+
 	let row = telemetryRows.get(label);
 
 	if (!row) {
 		row = document.createElement("p");
 		row.dataset.telemetryKey = label;
+		row.className = "telemetry-row"; // Apply the new flexbox class
 		telemetryRows.set(label, row);
 		telemetryList.appendChild(row);
 	}
 
-	row.textContent = `${label}: ${value}`;
+	// Split the data and the timer into separate spans
+	row.innerHTML = `
+        <span class="telemetry-data">${label}: ${value}</span> 
+        <span class="staleness-indicator">0.0s ago</span>
+    `;
 }
+
+// timer to update telemetry age
+setInterval(() => {
+	const now = Date.now();
+
+	for (const [label, data] of telemetryState.entries()) {
+		const diffSeconds = ((now - data.last_received) / 1000).toFixed(1);
+		const row = telemetryRows.get(label);
+
+		if (row) {
+			// Update the HTML with the separate spans
+			row.innerHTML = `
+                <span class="telemetry-data">${label}: ${data.value}</span> 
+                <span class="staleness-indicator">${diffSeconds}s ago</span>
+            `;
+		}
+	}
+}, 500);
 
 // Expose to the window so Saucer/C++ can call it
 window.updateTelemetry = updateTelemetry;
