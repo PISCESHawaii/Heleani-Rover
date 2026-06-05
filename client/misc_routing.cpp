@@ -52,31 +52,13 @@ void initialize_telemetry_listener(
             if (auto query = request.find_child("query"); query.has_value()) {
                 // Iterate through each telemetry stat (battery, signal, speed)
                 for (const auto &stat: query.value()->children) {
-                    // Update the corresponding UI element based on stat name
-                    // Each stat calls a specific JavaScript function in the webview
-                    if (stat->name == "battery") {
-                        webview.execute(
-                            saucer_format_string<const std::string &>{"updateBattery({})"},
-                            stat->text_content
-                        );
-                    } else if (stat->name == "signal") {
-                        webview.execute(
-                            saucer_format_string<const std::string &>{"updateSignal({})"},
-                            stat->text_content
-                        );
-                    } else if (stat->name == "speed") {
-                        webview.execute(
-                            saucer_format_string<const std::string &>{"updateSpeed({})"},
-                            stat->text_content
-                        );
-                    } else {
-                        // Log unknown telemetry types to help debug unexpected data
-                        webview.execute(
-                            saucer_format_string<const std::string &>{"addLog(new Date().toLocaleTimeString(), {})"},
-                            std::format("Unknown telemetry stat \"{}\": {}", stat->name,
-                                        stat->text_content)
-                        );
-                    }
+                    webview.execute(
+                        saucer_format_string<
+                            const std::string &, const std::string &>{
+                            "updateTelemetry({}, {})"
+                        },
+                        stat->name, stat->text_content
+                    );
                 }
             }
 

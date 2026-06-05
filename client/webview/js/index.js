@@ -36,6 +36,10 @@ const errorMsg = document.getElementById("login-error");
 const logBox = document.getElementById("log-box");
 const controlButtons = document.querySelectorAll(".control-grid button");
 
+// Telemetry elements
+const telemetryList = document.getElementById("telemetry-list");
+const telemetryRows = new Map();
+
 // Status elements
 const statusBattery = document.getElementById("status-battery");
 const statusSignal = document.getElementById("status-signal");
@@ -160,10 +164,13 @@ function hideRoverWarning() {
  * @returns {void}
  */
 function resetStatusFields() {
-	statusBattery.textContent = "Battery: --%";
-	statusBattery.style.color = "";
-	statusSignal.textContent = "Signal: --";
-	statusSpeed.textContent = "Speed: --";
+	if (!telemetryList) {
+		console.error("Telemetry container not found");
+		return;
+	}
+
+	telemetryList.innerHTML = "";
+	telemetryRows.clear();
 }
 
 /**
@@ -250,7 +257,7 @@ function markRoverReachable() {
  * @returns {void}
  */
 function markRoverUnreachable() {
-	disableUI()
+	disableUI();
 
 	showRoverWarning(
 		"Rover Unreachable",
@@ -295,6 +302,26 @@ function clearControlButtons() {
 	controlGrid.innerHTML = "";
 }
 
+function addControlButtonToControlGrid(commandId, commandName, controlGrid) {
+	const button = document.createElement("button");
+	button.dataset.command = commandId;
+	button.textContent = commandName;
+	button.disabled = false;
+
+	button.addEventListener("click", async () => {
+		const command = button.dataset.command;
+		if (!command) return;
+
+		try {
+			await saucer.exposed.SendCommand(command);
+		} catch (err) {
+			addLog(new Date().toLocaleTimeString(), `Error: ${err}`);
+		}
+	});
+
+	controlGrid.appendChild(button);
+}
+
 /**
  * Adds a single rover command button to the control grid.
  *
@@ -313,23 +340,7 @@ function addControlButton(commandId, commandName) {
 		return;
 	}
 
-	const button = document.createElement("button");
-	button.dataset.command = commandId;
-	button.textContent = commandName;
-	button.disabled = false;
-
-	button.addEventListener("click", async () => {
-		const command = button.dataset.command;
-		if (!command) return;
-
-		try {
-			await saucer.exposed.SendCommand(command);
-		} catch (err) {
-			addLog(new Date().toLocaleTimeString(), `Error: ${err}`);
-		}
-	});
-
-	controlGrid.appendChild(button);
+	addControlButtonToControlGrid(commandId, commandName, controlGrid);
 }
 
 // Expose to be called from C++
@@ -360,25 +371,9 @@ function populateControlButtons(commands) {
 
 	controlGrid.innerHTML = "";
 
-	commands.forEach(([commandId, commandName]) => {
-		const button = document.createElement("button");
-		button.dataset.command = commandId;
-		button.textContent = commandName;
-		button.disabled = false;
-
-		button.addEventListener("click", async () => {
-			const command = button.dataset.command;
-			if (!command) return;
-
-			try {
-				await saucer.exposed.SendCommand(command);
-			} catch (err) {
-				addLog(new Date().toLocaleTimeString(), `Error: ${err}`);
-			}
-		});
-
-		controlGrid.appendChild(button);
-	});
+	commands.forEach(([commandId, commandName]) =>
+		addControlButtonToControlGrid(commandId, commandName, controlGrid),
+	);
 
 	addLog(
 		new Date().toLocaleTimeString(),
@@ -533,65 +528,41 @@ controlButtons.forEach((btn) => {
 });
 
 /**
- * Updates one or more telemetry status fields.
+ * Updates or appends a telemetry status field.
  *
- * This function is exposed on `window` for native calls. Individual fields are
- * only updated when their corresponding argument is not `undefined`.
+ * If a row for the provided key already exists, only its value is updated.
+ * Otherwise, a new telemetry row is appended to the status panel and cached.
  *
- * @param {number|string|undefined} battery Battery percentage.
- * @param {string|number|undefined} signal Signal strength label or value.
- * @param {string|number|undefined} speed Rover speed value.
+ * @param {string} key Telemetry name, such as `"Battery"`, `"Signal"`, or `"Speed"`.
+ * @param {string|number|boolean|null} value Telemetry value to display.
  * @returns {void}
  */
-function updateStatus(battery, signal, speed) {
-	if (battery !== undefined) window.updateBattery(battery);
-	if (signal !== undefined) window.updateSignal(signal);
-	if (speed !== undefined) window.updateSpeed(speed);
-}
-
-/**
- * Updates the displayed rover battery level.
- *
- * Values below 20 are displayed in red to warn the operator.
- *
- * @param {number|string} level Battery percentage.
- * @returns {void}
- */
-function updateBattery(level) {
-	statusBattery.textContent = `Battery: ${level}%`;
-
-	if (level < 20) {
-		statusBattery.style.color = "#ff4d4d";
-	} else {
-		statusBattery.style.color = "";
+function updateTelemetry(key, value) {
+	if (!telemetryList) {
+		console.error("Telemetry container not found");
+		return;
 	}
+
+	const label = String(key).trim();
+	if (!label) {
+		console.error("Telemetry key cannot be empty");
+		return;
+	}
+
+	let row = telemetryRows.get(label);
+
+	if (!row) {
+		row = document.createElement("p");
+		row.dataset.telemetryKey = label;
+		telemetryRows.set(label, row);
+		telemetryList.appendChild(row);
+	}
+
+	row.textContent = `${label}: ${value}`;
 }
 
-/**
- * Updates the displayed rover signal strength.
- *
- * @param {string|number} strength Signal strength value, such as `"Excellent"` or `"4/5"`.
- * @returns {void}
- */
-function updateSignal(strength) {
-	statusSignal.textContent = `Signal: ${strength}`;
-}
-
-/**
- * Updates the displayed rover speed.
- *
- * @param {string|number} value Speed value, such as `"1.2 m/s"`.
- * @returns {void}
- */
-function updateSpeed(value) {
-	statusSpeed.textContent = `Speed: ${value}`;
-}
-
-// Expose these to the window so Saucer/C++ can call them
-window.updateStatus = updateStatus;
-window.updateBattery = updateBattery;
-window.updateSignal = updateSignal;
-window.updateSpeed = updateSpeed;
+// Expose to the window so Saucer/C++ can call it
+window.updateTelemetry = updateTelemetry;
 
 /**
  * Creates or updates the camera feed iframe.
