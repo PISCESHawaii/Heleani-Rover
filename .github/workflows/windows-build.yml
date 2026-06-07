@@ -16,10 +16,11 @@ jobs:
         run: vcpkg install openssl:x64-windows libxml2:x64-windows zlib:x64-windows
 
       - name: Configure CMake (HelelaniRover)
-        # We tell CMake to use vcpkg as the toolchain, which automatically wires up find_package()
+        # We dropped the invasive CMAKE_TOOLCHAIN_FILE and replaced it with a simple CMAKE_PREFIX_PATH
         run: |
-          cmake -B build -DCMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=x64-windows -DCMAKE_BUILD_TYPE=Release
-
+          cmake -B build -DCMAKE_PREFIX_PATH="C:/vcpkg/installed/x64-windows" -DCMAKE_BUILD_TYPE=RelWithDebInfo
+        env:
+          PKG_CONFIG_PATH: "C:/vcpkg/installed/x64-windows/lib/pkgconfig"
       - name: Build the Project
         run: cmake --build build --config Release
 
