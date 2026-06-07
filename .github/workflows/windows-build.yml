@@ -22,6 +22,9 @@ jobs:
           # This key creates a unique cache ID based on the OS and the dependencies requested
           key: ${{ runner.os }}-vcpkg-cache
 
+      - name: Create vcpkg cache directory
+        run: mkdir -Force ${{ github.workspace }}/vcpkg_cache
+
       - name: Install Dependencies via vcpkg
         # vcpkg will automatically use the cache folder defined in the env above
         run: vcpkg install openssl:x64-windows libxml2:x64-windows zlib:x64-windows
