@@ -22,11 +22,20 @@ if (WIN32)
             "${libstrophe_src_SOURCE_DIR}/src/tls_gnutls.c"
             "${libstrophe_src_SOURCE_DIR}/src/tls_schannel.c"
             "${libstrophe_src_SOURCE_DIR}/src/tls_dummy.c"
+            "${libstrophe_src_SOURCE_DIR}/src/compression_dummy.c"
     )
 
     # 4. Compile the raw C files into our own static library
     add_library(strophe_static STATIC ${STROPHE_SOURCES})
     target_include_directories(strophe_static PUBLIC "${libstrophe_src_SOURCE_DIR}")
+
+    target_compile_definitions(strophe_static PRIVATE 
+            __LITTLE_ENDIAN__=1 
+            __BYTE_ORDER__=1234 
+            __ORDER_LITTLE_ENDIAN__=1234
+            HAVE_ZLIB=1
+            HAVE_OPENSSL=1
+    )
 
     # Link vcpkg dependencies and Windows network headers
     target_link_libraries(strophe_static PUBLIC
