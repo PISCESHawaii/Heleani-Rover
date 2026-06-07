@@ -11,39 +11,24 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install PkgConfig
-        # Installs a native Windows version of pkg-config so your CMake file works unmodified
-        run: choco install pkgconfiglite
-
       - name: Install Dependencies via vcpkg
-        # Grabs native Windows versions of your required libraries
-        run: vcpkg install openssl:x64-windows libxml2:x64-windows zlib:x64-windows cppwinrt:x64-windows directx-headers:x64-windows
-
-      - name: Build and Install libstrophe natively
-        run: |
-          git clone https://github.com/strophe/libstrophe.git
-          cd libstrophe
-          # Compile libstrophe using MSVC and tell it to use the vcpkg dependencies
-          cmake -B build -DCMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=x64-windows -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_PREFIX=../strophe_install
-          cmake --build build --config Release
-          cmake --install build --config Release
+        # Downloads Microsoft's pre-compiled versions of the supporting libraries
+        run: vcpkg install openssl:x64-windows libxml2:x64-windows zlib:x64-windows
 
       - name: Configure CMake (HelelaniRover)
+        # We tell CMake to use vcpkg as the toolchain, which automatically wires up find_package()
         run: |
-          cmake -B build -DCMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=x64-windows -DCMAKE_BUILD_TYPE=RelWithDebInfo
-        env:
-          # Point pkg-config to the vcpkg installation directory
-          PKG_CONFIG_PATH: "C:/vcpkg/installed/x64-windows/lib/pkgconfig"
+          cmake -B build -DCMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=x64-windows -DCMAKE_BUILD_TYPE=Release
 
       - name: Build the Project
-        # Let Microsoft's native build system handle the heavy lifting
         run: cmake --build build --config Release
 
       - name: Upload Windows Executables
         uses: actions/upload-artifact@v4
         with:
           name: HelelaniRover-Windows-Binaries
-          # MSVC automatically places binaries in a /Release subfolder
+          # We grab everything in the Release folders (including dynamic .dll files vcpkg might bundle)
           path: |
-            build/client/Release/*.exe
-            build/rover/Release/*.exe
+            build/client/Release/*
+            build/rover/Release/*
+            build/rover/Release/*.dll
