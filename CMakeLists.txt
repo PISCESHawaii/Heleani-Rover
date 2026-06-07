@@ -3,6 +3,9 @@ project(HelelaniRover)
 
 set(CMAKE_CXX_STANDARD 23)
 
+# Add this to disable C++20 module scanning and fix the Ninja '=' error
+set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
+
 # for .clang-tidy
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
