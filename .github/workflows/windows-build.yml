@@ -46,12 +46,12 @@ jobs:
           ./configure --prefix=/ucrt64 --disable-shared
           
           # Build and install
-          make
+          make -j$(nproc)
           make install
 
       - name: Configure CMake (HelelaniRover)
         # Using Ninja to keep the build times low
-        run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE==RelWithDebInfo -DCMAKE_CXX_SCAN_FOR_MODULES=OFF
+        run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo
 
       - name: Build the Project
         run: cmake --build build -- -j$(nproc)
