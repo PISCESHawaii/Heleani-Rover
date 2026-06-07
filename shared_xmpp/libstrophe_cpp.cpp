@@ -1,6 +1,5 @@
 #include "libstrophe_cpp.h"
 
-#include <cassert>
 #include <iostream>
 #include <ranges>
 
@@ -96,10 +95,8 @@ void libstrophe_cpp::set_handler(std::optional<std::string> ns,
 
 void libstrophe_cpp::send(const XmppNode &node) {
     if (!conn) throw std::runtime_error("Not connected");
-    std::lock_guard lock(send_lock);
-    xmpp_stanza_t *raw = node.to_libstrophe(ctx);
-    xmpp_send(conn, raw);
-    xmpp_stanza_release(raw);
+    std::lock_guard lock(queue_lock);
+    outgoing_queue.push(node);
 }
 
 int libstrophe_cpp::connect_noexcept(std::function<void()> OnSuccess, std::function<void(int, std::string)> OnFailure) {
@@ -110,10 +107,35 @@ int libstrophe_cpp::connect_noexcept(std::function<void()> OnSuccess, std::funct
 
     xmpp_connect_client(conn, nullptr, 0, conn_handler, this);
 
-    // Thread blocks here until disconnect() is called on another thread
-    xmpp_run(ctx);
+    // Thread-safe Custom Event Loop
+    while (!disconnected) {
+        // 1. Process incoming network events
+        xmpp_run_once(ctx, 50);
 
-    // --- xmpp_run HAS FINISHED. SAFE TO CLEAN UP ---
+        // 2. Check if a disconnect was requested safely
+        {
+            std::lock_guard lock(lifecycle_lock);
+            if (should_disconnect && conn) {
+                xmpp_disconnect(conn);
+                should_disconnect = false; // Trigger teardown once
+            }
+        }
+
+        // 3. Process outgoing message queue ON THE EVENT LOOP THREAD
+        {
+            std::lock_guard lock(queue_lock);
+            while (!outgoing_queue.empty()) {
+                XmppNode node = outgoing_queue.front();
+                outgoing_queue.pop();
+
+                xmpp_stanza_t *raw = node.to_libstrophe(ctx);
+                xmpp_send(conn, raw);
+                xmpp_stanza_release(raw);
+            }
+        }
+    }
+
+    // --- LOOP HAS FINISHED. SAFE TO CLEAN UP ---
     if (conn) {
         xmpp_conn_release(conn);
         conn = nullptr;
@@ -123,8 +145,6 @@ int libstrophe_cpp::connect_noexcept(std::function<void()> OnSuccess, std::funct
         ctx = nullptr;
     }
     xmpp_shutdown();
-
-    disconnected = true;
 
     return conn_err;
 }
@@ -169,6 +189,9 @@ void libstrophe_cpp::conn_handler(xmpp_conn_t *conn, xmpp_conn_event_t status, i
         that->conn_err = error;
         xmpp_stop(that->ctx);
 
+        // This will cleanly break the custom event loop on the next iteration
+        that->disconnected = true;
+
         if (that->connect_callback_on_failure) {
             // You can pass the string to your frontend here!
             that->connect_callback_on_failure(error, detailed_reason);
@@ -183,42 +206,61 @@ int libstrophe_cpp::internal_iq_handler(xmpp_conn_t *, xmpp_stanza_t *raw, void 
 
     if (id == "") return 1;
 
-    // swallow response iqs and pass to the callback lambda
-    if (
-        (type == "result" || type == "error") &&
-        self->iq_response_handlers.contains(id)
-    ) {
-        self->iq_response_handlers[id](self, XmppNode::from_libstrophe(raw));
-        self->iq_response_handlers.erase(id);
-        return 1;
+    // swallow response iqs and pass to the callback lambda safely
+    if (type == "result" || type == "error") {
+        StanzaHandler callback;
+        bool found = false;
+
+        // Scope the lock so we don't deadlock if the callback calls send_iq
+        {
+            std::lock_guard lock(self->iq_lock);
+            if (self->iq_response_handlers.contains(id)) {
+                callback = std::move(self->iq_response_handlers[id]);
+                self->iq_response_handlers.erase(id);
+                found = true;
+            }
+        }
+
+        if (found) {
+            callback(self, XmppNode::from_libstrophe(raw));
+            return 1;
+        }
     }
 
     // get the namespace to call the right handler
     xmpp_stanza_t *child = xmpp_stanza_get_children(raw);
     const std::string ns = child ? xmpp_stanza_get_ns(child) : nullptr;
 
-    // find the appropriate iq handler
-    if (self->iq_handlers.contains(std::format("{}:{}", type, ns))) {
-        const XmppNode response = self->iq_handlers[std::format("{}:{}", type, ns)]
-                (self, XmppNode::from_libstrophe(raw));
-        self->send(response);
+    // find the appropriate iq handler safely
+    {
+        std::lock_guard lock(self->iq_lock);
+        if (self->iq_handlers.contains(std::format("{}:{}", type, ns))) {
+            const XmppNode response = self->iq_handlers[std::format("{}:{}", type, ns)]
+                    (self, XmppNode::from_libstrophe(raw));
+            self->send(response);
+        }
     }
 
     return 1;
 }
 
 void libstrophe_cpp::set_iq_handler(std::string type, std::string ns, const IQHandler &handler) {
+    std::lock_guard lock(iq_lock);
     iq_handlers[std::format("{}:{}", type, ns)] = handler;
 }
 
 std::string libstrophe_cpp::send_iq(XmppNode node, StanzaHandler handler) {
     if (!conn) throw std::runtime_error("Not connected");
-    std::lock_guard lock(iq_lock);
-    if (node.attributes["id"].empty()) {
-        node.attributes["id"] = "iq_" + std::to_string(++iq_id_counter);
+
+    std::string id; {
+        std::lock_guard lock(iq_lock);
+        if (node.attributes["id"].empty()) {
+            node.attributes["id"] = "iq_" + std::to_string(++iq_id_counter);
+        }
+        id = node.attributes["id"];
+        iq_response_handlers[id] = std::move(handler);
     }
-    std::string id = node.attributes["id"];
-    iq_response_handlers[id] = std::move(handler);
+
     send(node);
     return id;
 }

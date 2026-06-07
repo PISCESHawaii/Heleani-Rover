@@ -8,9 +8,10 @@
 #include <vector>
 #include <tuple>
 #include <mutex>
+#include <queue>
+#include <atomic>
 
 #include "xmpp_node.h"
-#include "libstrophe_cpp.h"
 
 constexpr std::string ROVER_LOCALPART = "testing";
 constexpr std::string ROVER_RESOURCE = "helelani";
@@ -44,10 +45,14 @@ public:
     >;
 
 private:
-    std::mutex send_lock;
+    std::mutex queue_lock;
     std::mutex iq_lock;
     std::mutex lifecycle_lock;
-    bool disconnected = false;
+
+    std::atomic<bool> disconnected{false};
+    std::atomic<bool> should_disconnect{false};
+
+    std::queue<XmppNode> outgoing_queue;
 
     struct HandlerEntry {
         HandlerCriteria criteria;
@@ -111,15 +116,10 @@ public:
 
     void disconnect() {
         std::lock_guard lock(lifecycle_lock);
-        if (disconnected) return;
+        if (disconnected || should_disconnect) return;
 
-        if (conn) xmpp_disconnect(conn);
-        if (ctx) xmpp_stop(ctx);
-
-        // DO NOT free the memory here. The event loop in xmpp_run
-        // needs a microsecond to cleanly exit first!
-
-        disconnected = true;
+        // Let the event loop handle the actual teardown safely
+        should_disconnect = true;
     }
 
     void send(const XmppNode &node);
