@@ -27,11 +27,12 @@ if (WIN32)
 
     # 4. Compile the raw C files into our own static library
     add_library(strophe_static STATIC ${STROPHE_SOURCES})
+    set_target_properties(strophe_static PROPERTIES C_STANDARD 11)
     target_include_directories(strophe_static PUBLIC "${libstrophe_src_SOURCE_DIR}")
 
-    target_compile_definitions(strophe_static PRIVATE 
-            __LITTLE_ENDIAN__=1 
-            __BYTE_ORDER__=1234 
+    target_compile_definitions(strophe_static PRIVATE
+            __LITTLE_ENDIAN__=1
+            __BYTE_ORDER__=1234
             __ORDER_LITTLE_ENDIAN__=1234
             HAVE_ZLIB=1
             HAVE_OPENSSL=1
