@@ -1,0 +1,64 @@
+name: Windows Test Build
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    defaults:
+      run:
+        # Forces all commands to run inside the Linux-like MSYS2 environment
+        shell: msys2 {0}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup MSYS2 and Install System Dependencies
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            git
+            mingw-w64-ucrt-x86_64-gcc
+            mingw-w64-ucrt-x86_64-cmake
+            mingw-w64-ucrt-x86_64-ninja
+            mingw-w64-ucrt-x86_64-pkgconf
+            mingw-w64-ucrt-x86_64-libxml2
+            mingw-w64-ucrt-x86_64-openssl
+            autoconf
+            automake
+            libtool
+
+      - name: Build and Install libstrophe (Autotools)
+        run: |
+          git clone https://github.com/strophe/libstrophe.git
+          cd libstrophe
+          
+          # Generate the configure script
+          ./bootstrap.sh
+          
+          # Configure for static linking and set the install directory to MSYS2's prefix
+          ./configure --prefix=/ucrt64 --disable-shared
+          
+          # Build and install
+          make
+          make install
+
+      - name: Configure CMake (HelelaniRover)
+        # Using Ninja to keep the build times low
+        run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE==RelWithDebInfo
+
+      - name: Build the Project
+        run: cmake --build build
+
+      - name: Upload Windows Executables
+        uses: actions/upload-artifact@v4
+        with:
+          name: HelelaniRover-Windows-Binaries
+          path: |
+            build/client/*.exe
+            build/rover/*.exe

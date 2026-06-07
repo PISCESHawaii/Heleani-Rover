@@ -23,11 +23,23 @@ target_compile_options(shared_xmpp PRIVATE ${PEDANTIC_COMPILER_FLAGS})
 
 # 3. Link the static strophe file directly
 # We also link its dependencies so the linker is happy
-target_link_libraries(shared_xmpp PUBLIC
-        ${STROPHE_STATIC_LIB}
-        ${LIBXML2_LIBRARIES}
-        ${OPENSSL_LIBRARIES}
-        ${ZLIB_LIBRARIES}
-        pthread
-        resolv
-)
+if (WIN32)
+    # Windows native socket library instead of resolv
+    target_link_libraries(shared_xmpp PUBLIC
+            ${STROPHE_STATIC_LIB}
+            ${LIBXML2_LIBRARIES}
+            ${OPENSSL_LIBRARIES}
+            ${ZLIB_LIBRARIES}
+            ws2_32
+    )
+else ()
+    # Your original Linux linking
+    target_link_libraries(shared_xmpp PUBLIC
+            ${STROPHE_STATIC_LIB}
+            ${LIBXML2_LIBRARIES}
+            ${OPENSSL_LIBRARIES}
+            ${ZLIB_LIBRARIES}
+            pthread
+            resolv
+    )
+endif ()
