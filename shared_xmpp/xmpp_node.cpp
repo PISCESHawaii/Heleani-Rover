@@ -2,6 +2,9 @@
 // Created by joseph on 3/26/26.
 //
 
+#include <stdexcept>
+#include "xmpp_node.h"
+
 #include "xmpp_node.h"
 
 std::vector<std::shared_ptr<XmppNode> > XmppNode::find_all(const std::string &tag_name, size_t limit) {
