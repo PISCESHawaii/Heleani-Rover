@@ -32,6 +32,7 @@ jobs:
             autoconf
             automake
             libtool
+            make
 
       - name: Build and Install libstrophe (Autotools)
         run: |
