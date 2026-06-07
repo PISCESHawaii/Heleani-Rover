@@ -22,7 +22,12 @@
 #include <string>
 #include <utility>
 #include <thread>
+
+#ifdef _WIN32
+#include <windows.h> // For Sleep()
+#else
 #include <unistd.h>
+#endif
 
 // saucer webview shenanigans
 #include <saucer/smartview.hpp>
