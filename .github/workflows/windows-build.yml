@@ -29,6 +29,7 @@ jobs:
             mingw-w64-ucrt-x86_64-pkgconf
             mingw-w64-ucrt-x86_64-libxml2
             mingw-w64-ucrt-x86_64-openssl
+            mingw-w64-ucrt-x86_64-cppwinrt
             autoconf
             automake
             libtool
