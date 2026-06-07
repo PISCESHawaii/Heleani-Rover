@@ -22,12 +22,13 @@
 #include <string>
 #include <utility>
 #include <thread>
-
-#ifdef _WIN32
-#include <windows.h> // For Sleep()
-#else
-#include <unistd.h>
-#endif
+// #include <chrono>
+//
+// #ifdef _WIN32
+// #include <windows.h> // For Sleep()
+// #else
+// #include <unistd.h>
+// #endif
 
 // saucer webview shenanigans
 #include <saucer/smartview.hpp>
@@ -482,8 +483,7 @@ coco::stray start(saucer::application *app) {
             std::thread([=]() {
                 // Wait 10 seconds for connection to succeed
                 // TODO: make a constant config
-                sleep(10);
-
+                std::this_thread::sleep_for(std::chrono::seconds(10));
                 // If connection hasn't completed, mark it as failed
                 if (success->exchange(-1) != 0) return;
 
