@@ -27,7 +27,7 @@ jobs:
 
       - name: Install Dependencies via vcpkg
         # vcpkg will automatically use the cache folder defined in the env above
-        run: vcpkg install openssl:x64-windows libxml2:x64-windows zlib:x64-windows
+        run: vcpkg install libxml2:x64-windows zlib:x64-windows
 
       - name: Configure CMake (HelelaniRover)
         # We dropped the invasive CMAKE_TOOLCHAIN_FILE and replaced it with a simple CMAKE_PREFIX_PATH

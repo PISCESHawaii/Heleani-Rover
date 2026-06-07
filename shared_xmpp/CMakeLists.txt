@@ -1,9 +1,7 @@
 if (WIN32)
     # --- WINDOWS PATH (MSVC + VCPKG) ---
 
-    # 1. Use vcpkg's native CMake integration to find dependencies
     find_package(LibXml2 REQUIRED)
-    find_package(OpenSSL REQUIRED)
     find_package(ZLIB REQUIRED)
 
     # 2. Download libstrophe source directly into the build folder
@@ -15,37 +13,35 @@ if (WIN32)
     )
     FetchContent_MakeAvailable(libstrophe_src)
 
-    # 3. Grab all the .c files, but manually remove conflicting TLS and Parser alternates
+    # 2. Swap the excluded TLS file to drop OpenSSL and KEEP Schannel
     file(GLOB STROPHE_SOURCES "${libstrophe_src_SOURCE_DIR}/src/*.c")
     list(REMOVE_ITEM STROPHE_SOURCES
             "${libstrophe_src_SOURCE_DIR}/src/parser_expat.c"
             "${libstrophe_src_SOURCE_DIR}/src/tls_gnutls.c"
-            "${libstrophe_src_SOURCE_DIR}/src/tls_schannel.c"
+            "${libstrophe_src_SOURCE_DIR}/src/tls_openssl.c"  # <--- DROP OPENSSL
             "${libstrophe_src_SOURCE_DIR}/src/tls_dummy.c"
             "${libstrophe_src_SOURCE_DIR}/src/compression_dummy.c"
     )
 
-    # 4. Compile the raw C files into our own static library
     add_library(strophe_static STATIC ${STROPHE_SOURCES})
     set_target_properties(strophe_static PROPERTIES C_STANDARD 11)
     target_include_directories(strophe_static PUBLIC "${libstrophe_src_SOURCE_DIR}")
 
+    # 3. Removed HAVE_OPENSSL=1
     target_compile_definitions(strophe_static PRIVATE
             __LITTLE_ENDIAN__=1
             __BYTE_ORDER__=1234
             __ORDER_LITTLE_ENDIAN__=1234
             HAVE_ZLIB=1
-            HAVE_OPENSSL=1
     )
 
-    # Link vcpkg dependencies and Windows network headers
+    # 4. Swap OpenSSL linking for crypt32
     target_link_libraries(strophe_static PUBLIC
             LibXml2::LibXml2
-            OpenSSL::SSL
-            OpenSSL::Crypto
             ZLIB::ZLIB
             ws2_32
             secur32
+            crypt32  # <--- Schannel relies on this
     )
 
     # 5. Build YOUR code and link it to our custom strophe build
