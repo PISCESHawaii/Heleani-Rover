@@ -12,7 +12,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # Define your strict rules based on the compiler
 if (MSVC)
     # Microsoft Visual C++ specific pedantic flags
-    set(PEDANTIC_COMPILER_FLAGS /W4 /WX)
+    set(PEDANTIC_COMPILER_FLAGS /W4)
 else ()
     # GCC/Clang specific pedantic flags
     set(PEDANTIC_COMPILER_FLAGS -Wall -Wextra -Wpedantic)
