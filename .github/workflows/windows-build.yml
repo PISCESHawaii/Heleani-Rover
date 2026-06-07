@@ -51,10 +51,10 @@ jobs:
 
       - name: Configure CMake (HelelaniRover)
         # Using Ninja to keep the build times low
-        run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE==RelWithDebInfo
+        run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE==RelWithDebInfo -DCMAKE_CXX_SCAN_FOR_MODULES=OFF
 
       - name: Build the Project
-        run: cmake --build build
+        run: cmake --build build -- -j$(nproc)
 
       - name: Upload Windows Executables
         uses: actions/upload-artifact@v4
