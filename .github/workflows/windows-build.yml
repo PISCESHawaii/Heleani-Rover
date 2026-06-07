@@ -22,14 +22,13 @@ jobs:
         env:
           PKG_CONFIG_PATH: "C:/vcpkg/installed/x64-windows/lib/pkgconfig"
       - name: Build the Project
-        run: cmake --build build --config Release
-
+        run: cmake --build build --config RelWithDebInfo --target client_saucer
       - name: Upload Windows Executables
         uses: actions/upload-artifact@v4
         with:
           name: HelelaniRover-Windows-Binaries
           # We grab everything in the Release folders (including dynamic .dll files vcpkg might bundle)
           path: |
-            build/client/Release/*
-            build/rover/Release/*
-            build/rover/Release/*.dll
+            build/client/RelWithDebInfo/*
+            build/rover/RelWithDebInfo/*
+            build/rover/RelWithDebInfo/*.dll
