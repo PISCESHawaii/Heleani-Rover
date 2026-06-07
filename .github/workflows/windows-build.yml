@@ -1,4 +1,4 @@
-name: Windows Test Build
+name: Windows Native Build (MSVC)
 
 on:
   workflow_dispatch:
@@ -7,61 +7,43 @@ jobs:
   build:
     runs-on: windows-latest
 
-    defaults:
-      run:
-        # Forces all commands to run inside the Linux-like MSYS2 environment
-        shell: msys2 {0}
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup MSYS2 and Install System Dependencies
-        uses: msys2/setup-msys2@v2
-        with:
-          msystem: UCRT64
-          update: true
-          install: >-
-            git
-            mingw-w64-ucrt-x86_64-gcc
-            mingw-w64-ucrt-x86_64-cmake
-            mingw-w64-ucrt-x86_64-ninja
-            mingw-w64-ucrt-x86_64-pkgconf
-            mingw-w64-ucrt-x86_64-libxml2
-            mingw-w64-ucrt-x86_64-openssl
-            mingw-w64-ucrt-x86_64-cppwinrt
-            mingw-w64-ucrt-x86_64-directx-headers
-            autoconf
-            automake
-            libtool
-            make
+      - name: Install PkgConfig
+        # Installs a native Windows version of pkg-config so your CMake file works unmodified
+        run: choco install pkgconfiglite
 
-      - name: Build and Install libstrophe (Autotools)
+      - name: Install Dependencies via vcpkg
+        # Grabs native Windows versions of your required libraries
+        run: vcpkg install openssl:x64-windows libxml2:x64-windows zlib:x64-windows cppwinrt:x64-windows directx-headers:x64-windows
+
+      - name: Build and Install libstrophe natively
         run: |
           git clone https://github.com/strophe/libstrophe.git
           cd libstrophe
-          
-          # Generate the configure script
-          ./bootstrap.sh
-          
-          # Configure for static linking and set the install directory to MSYS2's prefix
-          ./configure --prefix=/ucrt64 --disable-shared
-          
-          # Build and install
-          make -j$(nproc)
-          make install
+          # Compile libstrophe using MSVC and tell it to use the vcpkg dependencies
+          cmake -B build -DCMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=x64-windows -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_PREFIX=../strophe_install
+          cmake --build build --config Release
+          cmake --install build --config Release
 
       - name: Configure CMake (HelelaniRover)
-        # Using Ninja to keep the build times low
-        run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo
+        run: |
+          cmake -B build -DCMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=x64-windows -DCMAKE_BUILD_TYPE=RelWithDebInfo
+        env:
+          # Point pkg-config to the vcpkg installation directory
+          PKG_CONFIG_PATH: "C:/vcpkg/installed/x64-windows/lib/pkgconfig"
 
       - name: Build the Project
-        run: cmake --build build -- -j$(nproc)
+        # Let Microsoft's native build system handle the heavy lifting
+        run: cmake --build build --config Release
 
       - name: Upload Windows Executables
         uses: actions/upload-artifact@v4
         with:
           name: HelelaniRover-Windows-Binaries
+          # MSVC automatically places binaries in a /Release subfolder
           path: |
-            build/client/*.exe
-            build/rover/*.exe
+            build/client/Release/*.exe
+            build/rover/Release/*.exe

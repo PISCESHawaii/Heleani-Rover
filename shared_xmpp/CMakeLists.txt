@@ -1,7 +1,9 @@
-# 1. Force CMake to find the .a file specifically
+# 1. Force CMake to find the .a/.lib file specifically
 find_library(STROPHE_STATIC_LIB
-        NAMES libstrophe.a
-        HINTS "$ENV{HOME}/.local/lib" "/usr/lib64" "/usr/lib/arm-linux-gnueabihf"
+        # Added strophe.lib to the search names
+        NAMES strophe.lib strophe libstrophe.a
+        # Added the local install folder we will create in the GitHub Action
+        HINTS "$ENV{HOME}/.local/lib" "/usr/lib64" "/usr/lib/arm-linux-gnueabihf" "${CMAKE_SOURCE_DIR}/strophe_install/lib"
 )
 
 # 2. Libstrophe depends on an XML parser and SSL
