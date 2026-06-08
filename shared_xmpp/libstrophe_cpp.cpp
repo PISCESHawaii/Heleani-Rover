@@ -178,8 +178,8 @@ void libstrophe_cpp::conn_handler(xmpp_conn_t *conn, xmpp_conn_event_t status, i
             // stream_error->text is the human-readable part
             // stream_error->cnd is the XMPP condition (e.g., "not-authorized")
             detailed_reason = stream_error->text
-                                  ? stream_error->text
-                                  : "Stream error: " + std::string(stream_error->text);
+                                  ? std::string(stream_error->text)
+                                  : "Stream error: Unknown condition";
         }
         // 2. Handle specific libstrophe internal failures
         else if (error != 0) {
@@ -201,10 +201,14 @@ void libstrophe_cpp::conn_handler(xmpp_conn_t *conn, xmpp_conn_event_t status, i
 
 int libstrophe_cpp::internal_iq_handler(xmpp_conn_t *, xmpp_stanza_t *raw, void *userdata) {
     auto *self = static_cast<libstrophe_cpp *>(userdata);
-    const std::string id = xmpp_stanza_get_id(raw);
-    const std::string type = xmpp_stanza_get_type(raw);
 
-    if (id == "") return 1;
+    // Safely extract C-strings, falling back to empty strings if NULL
+    const char *raw_id = xmpp_stanza_get_id(raw);
+    const char *raw_type = xmpp_stanza_get_type(raw);
+    const std::string id = raw_id ? raw_id : "";
+    const std::string type = raw_type ? raw_type : "";
+
+    if (id.empty()) return 1;
 
     // swallow response iqs and pass to the callback lambda safely
     if (type == "result" || type == "error") {
@@ -227,9 +231,10 @@ int libstrophe_cpp::internal_iq_handler(xmpp_conn_t *, xmpp_stanza_t *raw, void 
         }
     }
 
-    // get the namespace to call the right handler
+    // get the namespace to call the right handler SAFELY
     xmpp_stanza_t *child = xmpp_stanza_get_children(raw);
-    const std::string ns = child ? xmpp_stanza_get_ns(child) : nullptr;
+    const char *raw_ns = child ? xmpp_stanza_get_ns(child) : nullptr;
+    const std::string ns = raw_ns ? raw_ns : "";
 
     // find the appropriate iq handler safely
     {
