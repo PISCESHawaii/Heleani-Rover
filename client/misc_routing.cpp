@@ -223,7 +223,7 @@ void fetch_rover_options(
 
 // Commands are sent as IQ-set stanzas because they trigger actions
 // Using "set" rather than "get" since we're commanding the rover, not querying state
-constexpr std::string COMMAND_REQEST_TYPE = "set";
+constexpr std::string_view COMMAND_REQEST_TYPE = "set";
 
 // Sends a command to the rover and logs the result
 // Commands can be movement controls, camera operations, or any rover action
@@ -231,7 +231,7 @@ constexpr std::string COMMAND_REQEST_TYPE = "set";
 void send_command(saucer::smartview &webview, libstrophe_cpp *xmpp_client, std::string command_id) {
     // Create an IQ-set query with the command ID as the namespace
     // This allows the rover to route different commands to appropriate handlers
-    XmppNode command = make_iq_query(COMMAND_REQEST_TYPE, "query", command_id);
+    XmppNode command = make_iq_query(COMMAND_REQEST_TYPE.data(), "query", command_id);
     // Address the command to the specific rover instance
     command.attributes["to"] = std::format("{}@{}/{}", ROVER_LOCALPART, xmpp_client->domain, ROVER_RESOURCE);
 

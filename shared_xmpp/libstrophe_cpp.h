@@ -13,8 +13,8 @@
 
 #include "xmpp_node.h"
 
-constexpr std::string ROVER_LOCALPART = "testing";
-constexpr std::string ROVER_RESOURCE = "helelani";
+constexpr std::string_view ROVER_LOCALPART = "testing";
+constexpr std::string_view ROVER_RESOURCE = "helelani";
 
 /**
  * Represents a C++ wrapper for the libstrophe library to facilitate XMPP protocol handling.
