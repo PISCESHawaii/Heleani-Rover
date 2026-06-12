@@ -62,47 +62,52 @@ p#button-theme {
     border-radius: 8px;
 }
 
-    /* Top Navigation Bar */
-    .navbar {
-        position: sticky;
-        top: 0;
-        z-index: 10;
-        height: 60px;
-        background-color: var(--bg-color);
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        padding: 0 24px;
-        border-bottom: 2px solid #2a3358;
-    }
+/* Top Navigation Bar */
+.navbar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    height: 60px;
+    background-color: var(--bg-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 0 24px;
+    border-bottom: 2px solid #2a3358;
+    flex-shrink: 0;
+}
 
-    .navbar h1 {
-        color: var(--button-text);
-        font-size: 20px;
-        font-weight: 600;
-        letter-spacing: 1px;
-        line-height: 1;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        min-width: 0;
-    }
+.navbar h1 {
+    color: var(--button-text);
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    line-height: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+}
 
-    .nav-actions button {
-        background-color: var(--button-bg);
-        color: #fff;
-        border: 2px solid #3b4a8a;
-        padding: 8px 14px;
-        margin-left: 10px;
-        border-radius: 6px;
-        cursor: pointer;
-        flex-shrink: 0;
+.nav-actions button {
+    background-color: var(--button-bg);
+    color: #fff;
+    border: 2px solid #3b4a8a;
+    padding: 8px 14px;
+    margin-left: 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
 }
 
 .nav-actions button:hover {
     background-color: #2b3a78;
-    }
+}
 
 /* Main Layout */
 .dashboard {
@@ -113,6 +118,7 @@ p#button-theme {
     gap: 14px;
     padding: 16px;
     overflow: auto; /* Allow dashboard to scroll if needed */
+    min-height: 0;
 }
 
 .panel {
@@ -174,8 +180,8 @@ p#button-theme {
 }
 
 .staleness-indicator {
-    font-size: 0.85em;  /* Makes it slightly smaller than the main text */
-    opacity: 0.55;      /* Creates a neutral, washed-out grey effect in any theme */
+    font-size: 0.85em; /* Makes it slightly smaller than the main text */
+    opacity: 0.55; /* Creates a neutral, washed-out grey effect in any theme */
     font-variant-numeric: tabular-nums; /* Keeps the text from jumping as numbers change */
 }
 
@@ -333,12 +339,12 @@ p#button-theme {
     transform: none;
 }
 
-    .window-controls.ghost-style {
-        display: flex;
-        margin-left: 12px;
-        align-items: center;
-        flex-shrink: 0;
-    }
+.window-controls.ghost-style {
+    display: flex;
+    margin-left: 12px;
+    align-items: center;
+    flex-shrink: 0;
+}
 
 .window-controls.ghost-style button {
     background: none;
@@ -354,6 +360,7 @@ p#button-theme {
     border-radius: 50%; /* The hover background will be a soft circle */
     transition: background-color 0.2s ease, color 0.2s ease;
     padding: 0;
+    line-height: 1;
 }
 
 /* Matching the "Change Theme" hover color for consistency */
