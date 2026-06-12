@@ -109,10 +109,10 @@ int libstrophe_cpp::connect_noexcept(std::function<void()> OnSuccess, std::funct
 
     // Thread-safe Custom Event Loop
     while (!disconnected) {
-        // 1. Process incoming network events
+        // Process incoming network events
         xmpp_run_once(ctx, 50);
 
-        // 2. Check if a disconnect was requested safely
+        // Check if a disconnect was requested safely
         {
             std::lock_guard lock(lifecycle_lock);
             if (should_disconnect && conn) {
@@ -121,7 +121,7 @@ int libstrophe_cpp::connect_noexcept(std::function<void()> OnSuccess, std::funct
             }
         }
 
-        // 3. Process outgoing message queue ON THE EVENT LOOP THREAD
+        // Process outgoing message queue ON THE EVENT LOOP THREAD
         {
             std::lock_guard lock(queue_lock);
             while (!outgoing_queue.empty()) {
@@ -135,7 +135,7 @@ int libstrophe_cpp::connect_noexcept(std::function<void()> OnSuccess, std::funct
         }
     }
 
-    // --- LOOP HAS FINISHED. SAFE TO CLEAN UP ---
+    // LOOP HAS FINISHED. SAFE TO CLEAN UP
     if (conn) {
         xmpp_conn_release(conn);
         conn = nullptr;

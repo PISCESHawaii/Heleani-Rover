@@ -8,7 +8,7 @@ if (WIN32)
     include(FetchContent)
     FetchContent_Declare(
             libstrophe_src
-            GIT_REPOSITORY https://github.com/strophe/libstrophe.git
+            GIT_REPOSITORY https://github.com/jjj333-p/libstrophe.git
             GIT_TAG master
     )
     FetchContent_MakeAvailable(libstrophe_src)
