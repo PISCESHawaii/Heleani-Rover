@@ -45,6 +45,10 @@ webview in the UI. Any browser compatible webui or video stream can easily be em
 also allows the client to easily be cross-platform. *Generally*, the client is designed to be as dynamic as possible, so
 that you can easily add features to the rover without recompiling the client.
 
+Important note, Windows users will need to make sure 
+[the latest Visual C++ Redistributable](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170#latest-supported-redistributable-version)
+is installed.
+
 #### Important Note! Sometimes after you edit the webview files, and compile, the CSS or js will get corrupted and break. To fix this, you simply need to restart and compile again, and it will work fine. I am not sure why this happens, but I suspect it is due to some quirk of how saucer injects the webview files, likely as a postbuild script.
 
 More details on the client implementation can be found [here](client/readme.md).
@@ -102,6 +106,15 @@ have a @hawaii.edu email, you have a free Clion education license, which I highl
 1. **Configure**: `cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug`
 2. **Compile All**: `cmake --build build`
 3. **Target Specific**: `cmake --build build --target rover_daemon`
+
+I am not a windows user or developer, so I don't know all the nuances of building on windows. I've had success with 
+using a Github Actions workflow to build the project on Windows, which you can find [here](.github/workflows/windows.yml).
+[Running it](https://github.com/PISCESHawaii/Heleani-Rover/actions/workflows/windows-build.yml) takes 5 ages but it works!
+Do note that for the windows build, the [CMakeLists.txt](shared_xmpp/CMakeLists.txt) for the libstrophe wrapper is set to
+use  [my fork](https://github.com/jjj333-p/libstrophe/) for libstrophe, as the schannel wrapper was broken and I've 
+fixed it. This should be changed back to [The official libstrophe](https://github.com/strophe/libstrophe) once 
+[this pr](https://github.com/strophe/libstrophe/pull/270) is resolved. Note that this bundle includes the libraries 
+(.dll/.lib) as well as the debug symbols (.pdb).
 
 ### Handoff Notes
 
