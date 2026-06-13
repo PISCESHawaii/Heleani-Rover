@@ -20,6 +20,7 @@
  * - Thread-safe state management with mutexes and atomic variables
  */
 
+// standard library dependencies
 #include <atomic>
 #include <csignal>
 #include <fstream>
@@ -27,9 +28,9 @@
 #include <string>
 #include <thread>
 #include <random>
-
 #include <chrono>
 
+// shared xmpp logic
 #include "libstrophe_cpp.h"
 #include "xmpp_node.h"
 #include "xmpp_iq.h"

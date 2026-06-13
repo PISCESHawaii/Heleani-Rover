@@ -40,34 +40,46 @@
 </div>
 
 <div class="dashboard">
-    <div class="panel status">
-        <h2>Rover Status</h2>
-        <div id="telemetry-list">
-            <!-- Telemetry rows will be dynamically populated here -->
+    <div class="dashboard-column left-column">
+        <div class="panel status">
+            <h2>Rover Status</h2>
+            <div id="telemetry-list">
+                <!-- Telemetry rows will be dynamically populated here -->
+            </div>
+        </div>
+
+        <div class="row-resizer" data-resize-before=".status" data-resize-after=".controls"></div>
+
+        <div class="panel controls">
+            <h2>Rover Controls</h2>
+            <div class="control-grid" id="control-grid">
+                <!-- Buttons will be dynamically populated here -->
+            </div>
+        </div>
+
+        <div class="row-resizer" data-resize-before=".controls" data-resize-after=".location"></div>
+
+        <div class="panel location">
+            <h2>Rover Location</h2>
+            <div class="rover-location">Live Rover Location</div>
         </div>
     </div>
 
-    <div class="panel controls">
-        <h2>Rover Controls</h2>
-        <div class="control-grid" id="control-grid">
-            <!-- Buttons will be dynamically populated here -->
+    <div class="column-resizer" id="column-resizer"></div>
+
+    <div class="dashboard-column right-column">
+        <div class="panel camera">
+            <h2><a href="camera.html">Rover Camera</a></h2>
+            <div id="camera-feed" class="camera-feed"></div>
         </div>
-    </div>
 
-    <div class="panel location">
-        <h2>Rover Location</h2>
-        <div class="rover-location">Live Rover Location</div>
-    </div>
+        <div class="row-resizer" data-resize-before=".camera" data-resize-after=".log"></div>
 
-    <div class="panel camera">
-        <h2><a href="camera.html">Rover Camera</a></h2>
-        <div id="camera-feed" class="camera-feed"></div>
-    </div>
-
-    <div class="panel log">
-        <h2>Command Log</h2>
-        <div class="log-box" id="log-box">
-            [--:--] Awaiting connection...
+        <div class="panel log">
+            <h2>Command Log</h2>
+            <div class="log-box" id="log-box">
+                [--:--] Awaiting connection...
+            </div>
         </div>
     </div>
 </div>

@@ -657,3 +657,105 @@ if (
 ) {
 	setTheme("dark");
 }
+
+function initializeResizableDashboard() {
+	const dashboard = document.querySelector('.dashboard');
+	const leftColumn = document.querySelector('.left-column');
+	const columnResizer = document.getElementById('column-resizer');
+
+	if (!dashboard || !leftColumn || !columnResizer) {
+		return;
+	}
+
+	const minLeftWidth = 240;
+	const minRightWidth = 320;
+
+	columnResizer.addEventListener('pointerdown', (event) => {
+		event.preventDefault();
+
+		columnResizer.classList.add('dragging');
+		columnResizer.setPointerCapture(event.pointerId);
+
+		const handlePointerMove = (moveEvent) => {
+			const dashboardRect = dashboard.getBoundingClientRect();
+			const requestedLeftWidth = moveEvent.clientX - dashboardRect.left - 16;
+			const maxLeftWidth = dashboardRect.width - minRightWidth - columnResizer.offsetWidth - 32;
+			const clampedLeftWidth = Math.max(
+				minLeftWidth,
+				Math.min(requestedLeftWidth, maxLeftWidth)
+			);
+
+			dashboard.style.setProperty('--left-column-width', `${clampedLeftWidth}px`);
+		};
+
+		const handlePointerUp = (upEvent) => {
+			columnResizer.classList.remove('dragging');
+			columnResizer.releasePointerCapture(upEvent.pointerId);
+			columnResizer.removeEventListener('pointermove', handlePointerMove);
+			columnResizer.removeEventListener('pointerup', handlePointerUp);
+			columnResizer.removeEventListener('pointercancel', handlePointerUp);
+		};
+
+		columnResizer.addEventListener('pointermove', handlePointerMove);
+		columnResizer.addEventListener('pointerup', handlePointerUp);
+		columnResizer.addEventListener('pointercancel', handlePointerUp);
+	});
+
+	document.querySelectorAll('.row-resizer').forEach((resizer) => {
+		resizer.addEventListener('pointerdown', (event) => {
+			event.preventDefault();
+
+			const column = resizer.parentElement;
+			const beforeSelector = resizer.dataset.resizeBefore;
+			const afterSelector = resizer.dataset.resizeAfter;
+			const beforePanel = column.querySelector(beforeSelector);
+			const afterPanel = column.querySelector(afterSelector);
+
+			if (!beforePanel || !afterPanel) {
+				return;
+			}
+
+			resizer.classList.add('dragging');
+			resizer.setPointerCapture(event.pointerId);
+
+			const startY = event.clientY;
+			const startBeforeHeight = beforePanel.getBoundingClientRect().height;
+			const startAfterHeight = afterPanel.getBoundingClientRect().height;
+			const minPanelHeight = 80;
+
+			beforePanel.style.flex = `0 0 ${startBeforeHeight}px`;
+			afterPanel.style.flex = `0 0 ${startAfterHeight}px`;
+
+			const handlePointerMove = (moveEvent) => {
+				const deltaY = moveEvent.clientY - startY;
+
+				const requestedBeforeHeight = startBeforeHeight + deltaY;
+				const requestedAfterHeight = startAfterHeight - deltaY;
+
+				if (
+					requestedBeforeHeight < minPanelHeight ||
+					requestedAfterHeight < minPanelHeight
+				) {
+					return;
+				}
+
+				beforePanel.style.flexBasis = `${requestedBeforeHeight}px`;
+				afterPanel.style.flexBasis = `${requestedAfterHeight}px`;
+			};
+
+			const handlePointerUp = (upEvent) => {
+				resizer.classList.remove('dragging');
+				resizer.releasePointerCapture(upEvent.pointerId);
+				resizer.removeEventListener('pointermove', handlePointerMove);
+				resizer.removeEventListener('pointerup', handlePointerUp);
+				resizer.removeEventListener('pointercancel', handlePointerUp);
+			};
+
+			resizer.addEventListener('pointermove', handlePointerMove);
+			resizer.addEventListener('pointerup', handlePointerUp);
+			resizer.addEventListener('pointercancel', handlePointerUp);
+		});
+	});
+}
+
+initializeResizableDashboard();
