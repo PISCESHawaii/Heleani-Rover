@@ -69,7 +69,7 @@ void log_server_details(
  * @param callback Callback invoked when the request completes.
  * The callback receives:
  * - `success`: Whether the options were fetched successfully.
- * - `video_url`: The parsed rover video stream URL, or an empty string on failure.
+ * - `video_urls`: A list of video feed URL/name pairs, or an empty list on failure.
  * - `commands`: A list of command ID/display-name pairs, or an empty list on failure.
  */
 void fetch_rover_options(
@@ -78,7 +78,7 @@ void fetch_rover_options(
     std::function<
         void(
             bool success,
-            std::string video_url,
+            std::vector<std::pair<std::string, std::string> > video_urls,
             std::vector<std::pair<std::string, std::string> > commands
         )> callback
 );

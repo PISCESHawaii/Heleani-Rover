@@ -15,6 +15,7 @@
  * - Telemetry monitor thread (detects rover disconnection)
  */
 
+// standard library dependencies
 #include <atomic>
 #include <chrono>
 #include <iostream>
@@ -22,13 +23,6 @@
 #include <string>
 #include <utility>
 #include <thread>
-// #include <chrono>
-//
-// #ifdef _WIN32
-// #include <windows.h> // For Sleep()
-// #else
-// #include <unistd.h>
-// #endif
 
 // saucer webview shenanigans
 #include <saucer/smartview.hpp>
@@ -49,7 +43,7 @@ constexpr bool WEBVIEW_DEBUG_FLAG = false;
 
 // Initial window dimensions for the application.
 // Chosen to provide comfortable viewing of camera feed, controls, and telemetry simultaneously.
-constexpr saucer::size DEFAULT_WINDOW_SIZE = {1000, 720};
+constexpr saucer::size DEFAULT_WINDOW_SIZE = {1200, 720};
 
 // How long to wait between retry attempts when fetching rover options fails.
 // A 5-second interval prevents overwhelming the server while still being responsive.
@@ -93,34 +87,39 @@ namespace {
  * Updates the camera feed URL and creates buttons for all available rover commands.
  * 
  * @param webview The smartview instance to update
- * @param video_url URL for the rover's camera stream (empty string if unavailable)
+ * @param video_urls Vector of video URL/name pairs to create iframes for
  * @param commands Vector of command ID/name pairs to create control buttons for
  */
 void populate_rover_ui(
     saucer::smartview &webview,
-    const std::string &video_url,
+    const std::vector<std::pair<std::string, std::string> > &video_urls,
     const std::vector<std::pair<std::string, std::string> > &commands
 ) {
-    // Update the camera feed iframe with the rover's video stream URL.
-    // If the rover doesn't provide a video URL, fall back to a placeholder YouTube video (for now).
-    // This prevents showing a broken iframe when camera is unavailable.
-    if (!video_url.empty()) {
+    // Process video URLs if the rover provides any camera feeds
+    if (!video_urls.empty()) {
+        // Clear any existing video iframes from previous connections to avoid duplicates
+        webview.execute(saucer_format_string<>{"clearAllCameraIframes()"});
+
+        // Add each video feed to the UI with its associated name/label
+        for (const auto &[video_url, video_name]: video_urls) {
+            // Log to console for debugging/verification purposes
+            std::cout << "Video URL: " << video_url << " -> " << video_name << std::endl;
+
+            // Call JavaScript function to create an iframe for this video stream
+            webview.execute(
+                saucer_format_string<const std::string &, const std::string &>{"setCameraIframe({}, {})"},
+                video_url,
+                video_name
+            );
+        }
+
+        // Log success message to the UI's command log so users know video feeds are loaded
         webview.execute(
-            saucer_format_string<const std::string &>{"setCameraIframe({})"},
-            video_url
-        );
-    } else {
-        webview.execute(
-            saucer_format_string<const std::string &>{"setCameraIframe({})"},
-            "https://www.youtube.com/embed/txTRZh_tiYA"
+            saucer_format_string<const std::string &>{"addLog(new Date().toLocaleTimeString(), {})"},
+            std::format("Loaded {} video urls", video_urls.size())
         );
     }
 
-    // Log all available commands to the console for debugging purposes.
-    // Helps developers verify that the rover is advertising the expected command set.
-    for (const auto &[cmd_id, cmd_name]: commands) {
-        std::cout << "Command: " << cmd_id << " -> " << cmd_name << std::endl;
-    }
 
     // Dynamically create control buttons in the UI for each available rover command.
     // This allows different rovers to have different command sets without UI changes.
@@ -130,6 +129,7 @@ void populate_rover_ui(
 
         // Create a button for each command with its ID and display name
         for (const auto &[cmd_id, cmd_name]: commands) {
+            std::cout << "Command: " << cmd_id << " -> " << cmd_name << std::endl;
             webview.execute(
                 saucer_format_string<const std::string &, const std::string &>{"addControlButton({}, {})"},
                 cmd_id,
@@ -199,7 +199,7 @@ void start_rover_options_retry_loop(
                 client.get(),
                 [&, request_finished, request_succeeded, last_telemetry_ms, rover_marked_unreachable](
             bool success,
-            std::string video_url,
+            std::vector<std::pair<std::string, std::string> > video_urls,
             std::vector<std::pair<std::string, std::string> > commands
         ) {
                     // If the request failed, just mark as finished and return.
@@ -214,7 +214,7 @@ void start_rover_options_retry_loop(
                     request_finished->store(true, std::memory_order_release);
 
                     // Update the UI with the rover's camera feed and available commands
-                    populate_rover_ui(webview, video_url, commands);
+                    populate_rover_ui(webview, video_urls, commands);
 
                     // Reset the unreachable flag and update telemetry timestamp since we just heard from the rover
                     rover_marked_unreachable->store(false, std::memory_order_relaxed);

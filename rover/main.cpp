@@ -341,11 +341,23 @@ int main() {
                            XmppNode query("query");
                            query.attributes["xmlns"] = "rover::getopts";
 
-                           // Provide the video stream URL for the controller's camera feed
-                           // This allows the UI to display live video from the rover
-                           XmppNode video_url("video_url");
+                           // Provide the video stream URL and name for the controller's camera feed
+                           // This allows the UI to display live video from the rover with a descriptive name
+                           XmppNode video_feed("video_feed");
+
+                           XmppNode video_url("url");
+                           video_url.attributes["id"] = "main_camera";
                            video_url.text_content = "https://dl.4d2.sh/tQvzglBcFLAk.mp4";
-                           query.children.emplace_back(std::make_shared<XmppNode>(video_url));
+                           video_feed.children.emplace_back(std::make_shared<XmppNode>(video_url));
+
+                           XmppNode video_url2("url");
+                           video_url2.attributes["id"] = "secondary_camera";
+                           video_url2.text_content =
+                                   "https://dl.4d2.sh/USwyo5zmfw0P.mp4";
+                           video_feed.children.emplace_back(std::make_shared<XmppNode>(video_url2));
+
+                           query.children.emplace_back(std::make_shared<XmppNode>(video_feed));
+
 
                            // Container for all available movement commands
                            XmppNode commands("commands");

@@ -170,25 +170,6 @@ function resetStatusFields() {
 	telemetryState.clear();
 }
 
-/**
- * Removes the current camera iframe from the camera feed container.
- *
- * This clears stale video when the rover is not currently reachable.
- *
- * @returns {void}
- */
-function clearCameraIframe() {
-	const container = document.getElementById("camera-feed");
-	if (!container) {
-		console.error("Camera container not found");
-		return;
-	}
-
-	const iframe = container.querySelector("iframe");
-	if (iframe) {
-		iframe.remove();
-	}
-}
 
 /**
  * Disables UI elements and resets rover-related state.
@@ -207,7 +188,7 @@ function disableUI() {
 	setControlsEnabled(false);
 	clearControlButtons();
 	resetStatusFields();
-	clearCameraIframe();
+	clearAllCameraIframes();
 }
 
 /**
@@ -597,21 +578,30 @@ window.updateTelemetry = updateTelemetry;
  * stream URL, that URL is loaded. Otherwise, C++ may provide a fallback URL.
  *
  * @param {string} url URL to load into the camera iframe.
+ * @param {string} id Camera ID to associate with the iframe. Defaults to "default".
  * @returns {void}
  */
-function setCameraIframe(url) {
+function setCameraIframe(url, id = "default") {
 	const container = document.getElementById("camera-feed");
 	if (!container) {
 		console.error("Camera container not found");
 		return;
 	}
 
-	let iframe = container.querySelector("iframe");
+	// Log what we're trying to load
+	console.log(`Setting camera iframe: id="${id}", url="${url}"`);
+
+	// Validate the URL before creating iframe
+	if (!url || url.trim() === "") {
+		console.error(`Invalid camera URL for id="${id}": empty or null`);
+		addLog(new Date().toLocaleTimeString(), `Camera ${id}: Invalid URL (empty)`);
+		return;
+	}
+
+	let iframe = container.querySelector(`iframe[data-camera-id="${id}"]`);
 	if (!iframe) {
 		iframe = document.createElement("iframe");
-		iframe.style.width = "100%";
-		iframe.style.height = "100%";
-		iframe.style.border = "none";
+		iframe.dataset.cameraId = id;
 		iframe.setAttribute("allow", "autoplay; encrypted-media");
 		container.appendChild(iframe);
 	}
@@ -619,7 +609,44 @@ function setCameraIframe(url) {
 	iframe.src = url;
 }
 
+/**
+ * Removes a specific camera feed iframe.
+ *
+ * @param {string} [id] Camera ID to remove. Defaults to "default".
+ * @returns {void}
+ */
+function removeCameraIframe(id = "default") {
+	const container = document.getElementById("camera-feed");
+	if (!container) {
+		console.error("Camera container not found");
+		return;
+	}
+
+	const iframe = container.querySelector(`iframe[data-camera-id="${id}"]`);
+	if (iframe) {
+		iframe.remove();
+	}
+}
+
+/**
+ * Removes all camera feed iframes.
+ *
+ * @returns {void}
+ */
+function clearAllCameraIframes() {
+	const container = document.getElementById("camera-feed");
+	if (!container) {
+		console.error("Camera container not found");
+		return;
+	}
+
+	const iframes = container.querySelectorAll("iframe");
+	iframes.forEach(iframe => iframe.remove());
+}
+
 window.setCameraIframe = setCameraIframe;
+window.removeCameraIframe = removeCameraIframe;
+window.clearAllCameraIframes = clearAllCameraIframes;
 
 // Theme toggle
 const toggleButton = document.getElementById("theme-toggle");

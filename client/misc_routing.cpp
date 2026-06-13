@@ -121,7 +121,7 @@ void fetch_rover_options(
     std::function<
         void(
             bool success,
-            std::string video_url,
+            std::vector<std::pair<std::string, std::string> > video_urls,
             std::vector<std::pair<std::string, std::string> > commands
         )> callback
 ) {
@@ -170,12 +170,12 @@ void fetch_rover_options(
                 errorLog.str()
             );
 
-            callback(false, "", {});
+            callback(false, {}, {});
             return;
         }
 
         // Initialize containers for parsed data
-        std::string video_url;
+        std::vector<std::pair<std::string, std::string> > video_urls;
         std::vector<std::pair<std::string, std::string> > commands;
 
         std::cout << "Processing result response..." << std::endl;
@@ -183,14 +183,30 @@ void fetch_rover_options(
         if (auto query = response.find_child("query"); query.has_value()) {
             std::cout << "Found query node" << std::endl;
 
-            // Iterate through options (video_url and commands list)
+            // Iterate through options (video_urls and commands list)
             for (const auto &child: query.value()->children) {
                 std::cout << "Query child: " << child->name << std::endl;
 
-                // Extract the video stream URL if present
-                if (child->name == "video_url") {
-                    video_url = child->text_content;
-                    std::cout << "Found video_url: " << video_url << std::endl;
+                // Extract video stream URLs (can have multiple cameras)
+                if (child->name == "video_feed") {
+                    std::cout << "Found video_feed container with " << child->children.size() << " children" <<
+                            std::endl;
+
+                    // Each video URL has an ID (for identification) and a URL
+                    for (const auto &url: child->children) {
+                        if (url->name == "url") {
+                            // Extract URL ID from attributes (used for identifying the camera)
+                            std::string url_id = url->attributes.contains("id") ? url->attributes.at("id") : "";
+                            // Extract URL from text content
+                            std::string url_value = url->text_content;
+                            std::cout << "Found url: id=" << url_id << ", url=" << url_value << std::endl;
+
+                            // Only add valid URLs with non-empty IDs
+                            if (!url_id.empty()) {
+                                video_urls.emplace_back(url_value, url_id);
+                            }
+                        }
+                    }
                 } else if (child->name == "commands") {
                     // Parse the list of available commands
                     std::cout << "Found commands container with " << child->children.size() << " children" << std::endl;
@@ -215,9 +231,10 @@ void fetch_rover_options(
         }
 
         // Log successful parsing and invoke callback with the extracted data
-        std::cout << "Rover options fetched: video_url=" << video_url << ", commands count=" << commands.size() <<
+        std::cout << "Rover options fetched: video_urls count=" << video_urls.size() << ", commands count=" << commands.
+                size() <<
                 std::endl;
-        callback(true, video_url, commands);
+        callback(true, video_urls, commands);
     });
 }
 
