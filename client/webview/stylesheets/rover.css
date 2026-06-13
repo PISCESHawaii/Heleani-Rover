@@ -40,26 +40,8 @@ a {
     color: var(--text-color);
 }
 
-header {
-    background-color: var(--header-bg);
-    padding: 15px;
-    border-radius: 5px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
 p {
     margin: 3px;
-}
-
-p#button-theme {
-    background-color: var(--button-bg);
-    color: var(--button-text);
-    border: 2px solid #3b4a8a;
-    padding: 8px 14px;
-    cursor: pointer;
-    border-radius: 8px;
 }
 
 /* Top Navigation Bar */
@@ -92,9 +74,9 @@ p#button-theme {
 
 .nav-actions button {
     background-color: var(--button-bg);
-    color: #fff;
-    border: 2px solid #3b4a8a;
-    padding: 8px 14px;
+    color: var(--button-text);
+    border: 2px solid #2a3358;
+    padding: 8px 16px;
     margin-left: 10px;
     border-radius: 6px;
     cursor: pointer;
@@ -103,10 +85,18 @@ p#button-theme {
     align-items: center;
     justify-content: center;
     line-height: 1;
+    transition: all 0.2s ease;
 }
 
 .nav-actions button:hover {
-    background-color: #2b3a78;
+    background: #f0f4f8;
+    transform: translateY(-1px);
+}
+
+.nav-actions button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
 }
 
 /* Main Layout */
@@ -316,27 +306,6 @@ p#button-theme {
 .control-grid button:disabled {
     opacity: 0.5;
     cursor: not-allowed;
-}
-
-.nav-actions button {
-    color: #2a3358;
-    background: #ffffff;
-    border: 2px solid #2a3358;
-    padding: 8px 16px;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.nav-actions button:hover {
-    background: #f0f4f8;
-    transform: translateY(-1px);
-}
-
-.nav-actions button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    transform: none;
 }
 
 .window-controls.ghost-style {
