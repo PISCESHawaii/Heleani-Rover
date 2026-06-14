@@ -57,12 +57,14 @@
             </div>
         </div>
 
+        <!-- Placeholder for future features
         <div class="row-resizer" data-resize-before=".controls" data-resize-after=".location"></div>
 
         <div class="panel location">
             <h2>Rover Location</h2>
             <div class="rover-location">Live Rover Location</div>
         </div>
+        -->
     </div>
 
     <div class="column-resizer" id="column-resizer"></div>
@@ -76,7 +78,10 @@
         <div class="row-resizer" data-resize-before=".camera" data-resize-after=".log"></div>
 
         <div class="panel log">
-            <h2>Command Log</h2>
+            <div class="panel-heading log-heading">
+                <h2>Command Log</h2>
+                <button id="copy-log-btn" type="button">Copy All</button>
+            </div>
             <div class="log-box" id="log-box">
                 [--:--] Awaiting connection...
             </div>

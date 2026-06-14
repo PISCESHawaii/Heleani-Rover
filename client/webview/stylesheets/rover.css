@@ -190,6 +190,38 @@ p {
     flex-shrink: 0;
 }
 
+.panel-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 6px;
+    flex-shrink: 0;
+}
+
+.panel-heading h2 {
+    margin-bottom: 0;
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.panel-heading button {
+    background-color: var(--button-bg);
+    color: var(--button-text);
+    border: 2px solid var(--panel-border);
+    padding: 5px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    flex-shrink: 0;
+    font-size: 12px;
+}
+
+.panel-heading button:hover {
+    background: var(--hover-bg);
+}
+
 /* Specific Panels */
 .status {
     flex: 1 1 30%;

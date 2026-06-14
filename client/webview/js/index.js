@@ -34,6 +34,7 @@ const jidInput = document.getElementById("jid");
 const passwordInput = document.getElementById("password");
 const errorMsg = document.getElementById("login-error");
 const logBox = document.getElementById("log-box");
+const copyLogBtn = document.getElementById("copy-log-btn");
 const controlButtons = document.querySelectorAll(".control-grid button");
 
 // Telemetry elements
@@ -262,6 +263,30 @@ function addLog(time, message) {
 
 // make accessible from saucer
 window.addLog = addLog;
+
+/*
+ * Copies the entire log text to the clipboard.
+ *
+ * @returns {void}
+ */
+async function copyAllLogs() {
+	const logText = logBox.innerText;
+
+	try {
+		await navigator.clipboard.writeText(logText);
+		copyLogBtn.textContent = "Copied!";
+
+		setTimeout(() => {
+			copyLogBtn.textContent = "Copy All";
+		}, 1500);
+
+		console.log("Copied logs to clipboard.");
+	} catch (err) {
+		addLog(new Date().toLocaleTimeString(), `Error copying logs: ${err}`);
+	}
+}
+
+copyLogBtn.addEventListener("click", copyAllLogs);
 
 /**
  * Removes all dynamically generated rover control buttons.
