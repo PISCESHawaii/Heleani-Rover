@@ -2,7 +2,8 @@
 
 Webview taken
 from [private repo](https://github.com/jamituliao/roverfront-end/tree/4d219bba0a7293ca12b60f1f5fe17352fcde7ec8)
-and pivoted to c++ & saucer for more code overlap. Go to [that readme](./webview/readme.md) for more info.
+and pivoted to c++ & saucer for more code overlap. Go to [that readme](./webview.md) for more info. It could not be 
+included in that directory as anything in `./webview` is embeddeed by saucer. 
 
 The client is a relatively simple [Saucer](https://saucer.app/) webview-based application. It uses the `shared_xmpp`
 libstrophe wrapper to communicate with the rover daemon. A webview was chosen due to the ability to embed a camera
