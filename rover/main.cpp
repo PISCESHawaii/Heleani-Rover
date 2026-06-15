@@ -415,6 +415,7 @@ int main() {
     // The callback is invoked once connection is successfully established
     const int result = lsc.connect_noexcept(
         [&]() {
+            // on success callback
             std::cout << "Connected!" << std::endl;
 
             // Start the telemetry generation thread after successful connection

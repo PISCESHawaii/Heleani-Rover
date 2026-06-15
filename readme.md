@@ -27,7 +27,7 @@ libraries and frameworks that can be leveraged for various tasks, such as graphi
 This project creates a common C++ wrapper around **libstrophe** to simplify the XMPP communication logic. We use XMPP
 Info/Query (IQ) requests akin to HTTP GET/POST to simplify the communication logic. A "connection" is initialized by the
 client repeatedly attempting to send a get request with the XML NameSpace (xmlns) set to `rover::getopts`. The rover
-catches this request, and responds with a list of command IDs and the pretty name to display in the UI, as well as an
+catches this request and responds with a list of command IDs and the pretty name to display in the UI, as well as an
 http url to embed a camera webview.
 
 The rover caches the JID (Jabber ID) and will periodically send back `rover::telemetry` set IQs to the client, and if
@@ -39,10 +39,10 @@ More implementation details can be found [here](shared_xmpp/readme.md).
 
 ### Client
 
-The client is a relatively simple [Saucer](https://saucer.app/) webview based application. It uses the `shared_xmpp`
+The client is a relatively simple [Saucer](https://saucer.app/) webview-based application. It uses the `shared_xmpp`
 libstrophe wrapper to communicate with the rover daemon. A webview was chosen due to the ability to embed a camera
-webview in the UI. Any browser compatible webui or video stream can easily be embedded in an iframe. Using a webview
-also allows the client to easily be cross-platform. *Generally*, the client is designed to be as dynamic as possible, so
+webview in the UI. Any browser-compatible webui or video stream can easily be embedded in an iframe. Using a webview
+also allows the client to easily be cross-platform. *Generally*, the client is designed to be as dynamic as possible so
 that you can easily add features to the rover without recompiling the client.
 
 Important note, Windows users will need to make sure 
@@ -55,7 +55,7 @@ More details on the client implementation can be found [here](client/readme.md).
 
 ### Rover
 
-Due to the lack of availability of the rover & hardware, currently the rover_daemon is a dummy placeholder that simply
+Due to the absence of the rover & hardware, currently the rover_daemon is a dummy placeholder that simply
 prints out requested commands and sends randomized telemetry. More details on the rover implementation can be
 found [here](rover/readme.md).
 
@@ -77,8 +77,8 @@ A root `CMakeLists.txt` orchestrates the build. Dependencies are managed as foll
 To ensure the `rover_daemon` is portable across different Linux environments (like Raspbian), the following linking
 strategy is used:
 
-* **Statically Linked**: `libstrophe`, `libxml2`, and `zlib` are baked into the binary using `.a` archives to avoid "
-  missing library" errors at runtime.
+* **Statically Linked**: `libstrophe`, `libxml2`, and `zlib` are baked into the binary using `.a` archives to avoid
+  "missing library" errors at runtime.
 * **Dynamically Linked**: Core system libraries (`glibc`, `libstdc++`, `openssl`) are linked dynamically to ensure
   compatibility with the host kernel.
 
@@ -107,14 +107,16 @@ have a @hawaii.edu email, you have a free Clion education license, which I highl
 2. **Compile All**: `cmake --build build`
 3. **Target Specific**: `cmake --build build --target rover_daemon`
 
-I am not a windows user or developer, so I don't know all the nuances of building on windows. I've had success with 
-using a Github Actions workflow to build the project on Windows, which you can find [here](.github/workflows/windows.yml).
-[Running it](https://github.com/PISCESHawaii/Heleani-Rover/actions/workflows/windows-build.yml) takes 5 ages but it works!
-Do note that for the windows build, the [CMakeLists.txt](shared_xmpp/CMakeLists.txt) for the libstrophe wrapper is set to
+I am not a Windows user or developer, so I don't know all the nuances of building on Windows. I've had success with 
+using a GitHub Actions workflow to build the project on Windows, which you can find [here](.github/workflows/windows-build.yml).
+[Running it](https://github.com/PISCESHawaii/Heleani-Rover/actions/workflows/windows-build.yml) takes 5 ages, but it works!
+Do note that for the Windows build, the [CMakeLists.txt](shared_xmpp/CMakeLists.txt) for the libstrophe wrapper is set to
 use  [my fork](https://github.com/jjj333-p/libstrophe/) for libstrophe, as the schannel wrapper was broken and I've 
 fixed it. This should be changed back to [The official libstrophe](https://github.com/strophe/libstrophe) once 
 [this pr](https://github.com/strophe/libstrophe/pull/270) is resolved. Note that this bundle includes the libraries 
 (.dll/.lib) as well as the debug symbols (.pdb).
+
+The relevant directories for the various targets include further documentation on building.
 
 ### Handoff Notes
 
@@ -123,5 +125,4 @@ fixed it. This should be changed back to [The official libstrophe](https://githu
 * **Visibility**: All include paths and library links in `shared_xmpp` must be marked **`PUBLIC`** so that `client` and
   `rover` targets inherit them automatically.
 * **Saucer Backend**: Uses **WebKitGTK** on Linux and **WebView2** on Windows.
-* Successors must ensure [libstrophe](https://github.com/strophe/libstrophe) is available in `~/.local` or system paths
-  for the wrapper to compile.
+
