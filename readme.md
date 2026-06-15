@@ -1,7 +1,8 @@
 # Helelani Rover Technical Notes
 
-<img width="850" height="650" alt="image" src="https://github.com/user-attachments/assets/08948c8e-a8c3-40a1-b6a7-018aae2fa745" />
-
+<img width="416" height="256" alt="Screenshot of login prompt" src="https://github.com/user-attachments/assets/8caec3e1-6bd4-4896-9d76-47ef9b5f64ab" />
+<img width="416" height="256" alt="Screenshot of waiting for rover modal" src="https://github.com/user-attachments/assets/1088d5a5-0ae1-4a17-8868-78ab954e6c15" />
+<img width="416" height="256" alt="Screenshot of logged in client" src="https://github.com/user-attachments/assets/f7c4beef-74fd-4fff-aa4d-ed706c0df668" />
 
 This document provides a concise summary of the C++ architecture, dependency chain, and build requirements for the
 Helelani Rover redesign.
