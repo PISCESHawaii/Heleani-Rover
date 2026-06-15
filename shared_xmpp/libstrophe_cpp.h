@@ -130,8 +130,38 @@ public:
                      std::optional<std::string> type,
                      StanzaHandler handler);
 
+    /**
+     * Registers a handler for IQ stanzas that match a specific type and namespace.
+     *
+     * This method allows the user to specify a custom function to handle incoming IQ stanzas
+     * based on the provided type and namespace. The handler will be invoked whenever
+     * a matching IQ stanza is received.
+     *
+     * Thread safety is ensured by locking the IQ handler map during the registration process.
+     *
+     * @param type The type of the IQ stanza to match (e.g., "set" or "get").
+     * @param ns The namespace of the IQ stanza to match.
+     * @param handler The function to handle matching IQ stanzas. It is a callable that takes
+     *                a pointer to the libstrophe_cpp instance and an XmppNode representing the incoming stanza,
+     *                and returns an XmppNode as a response.
+     */
     void set_iq_handler(std::string type, std::string ns, const IQHandler &handler);
 
+    /**
+     * Sends an IQ stanza to the XMPP server and registers a response handler for the associated stanza ID.
+     *
+     * This method constructs and sends an IQ stanza using the provided XmppNode, automatically assigning
+     * a unique ID to the stanza if one is not already specified. The provided handler is registered to handle
+     * the response for the corresponding stanza ID. The method ensures thread safety while managing the unique
+     * ID generation and response handler registration.
+     *
+     * @param node The XmppNode representing the IQ stanza to be sent. It contains the attributes and structure
+     *             of the stanza, including type, namespace, and payload.
+     * @param handler A StanzaHandler callback to handle the response associated with the stanza ID. The handler
+     *                will be invoked when a response is received or if an error occurs.
+     * @return The unique ID of the IQ stanza that was sent.
+     * @throws std::runtime_error If the XMPP connection is not established.
+     */
     std::string send_iq(XmppNode node, StanzaHandler handler);
 };
 

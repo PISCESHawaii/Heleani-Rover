@@ -6,7 +6,16 @@
 #include <iomanip>
 #include <sstream>
 
-// Keep your clean ID generator!
+/**
+ * Generates a unique identifier for an XMPP IQ stanza.
+ *
+ * This method uses an atomic counter to ensure thread-safe incrementing of
+ * the sequence number. The resulting identifier is formatted as a string
+ * in the form of "iq-0x<hexadecimal_value>", where <hexadecimal_value> is an
+ * 8-character, zero-padded hexadecimal representation of the current sequence value.
+ *
+ * @return A string representing the unique IQ stanza identifier, formatted as "iq-0x<hexadecimal_value>".
+ */
 inline std::string get_next_iq_id() {
     static std::atomic<uint32_t> sequence{1000};
     const uint32_t val = sequence.fetch_add(1);
