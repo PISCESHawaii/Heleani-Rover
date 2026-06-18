@@ -13,7 +13,7 @@
 
 #include "xmpp_node.h"
 
-constexpr std::string_view ROVER_LOCALPART = "testing";
+constexpr std::string_view ROVER_LOCALPART = "rover";
 constexpr std::string_view ROVER_RESOURCE = "helelani";
 
 /**

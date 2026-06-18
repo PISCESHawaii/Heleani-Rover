@@ -66,13 +66,21 @@ void handle_message([[maybe_unused]] libstrophe_cpp *client, XmppNode stanza) {
     std::cout << "Received Unknown Message from " << stanza.attributes["from"] << ": \"" << message_text << "\"\n";
 }
 
-int main() {
-    // Load XMPP credentials from a configuration file
+int main(int argc, char *argv[]) {
+    // Check if the file path was passed as an argument
+    // argc is at least 1 (the program name itself is argv[0])
+    // The first argument passed by the user will be argv[1]
+    if (argc < 2) {
+        std::cerr << "Usage: " << argv[0] << " <path_to_login.txt>" << std::endl;
+        return 1;
+    }
+
+    // Load XMPP credentials from the configuration file path provided via argv[1]
     // This keeps sensitive login information out of the source code
-    std::ifstream file("../../rover/db/login.txt");
+    std::ifstream file(argv[1]);
     if (!file.is_open()) {
         // Exit immediately if credentials file is missing or inaccessible
-        std::cerr << "Could not open login.txt" << std::endl;
+        std::cerr << "Could not open " << argv[1] << std::endl;
         return 1;
     }
 
