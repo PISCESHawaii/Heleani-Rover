@@ -50,6 +50,8 @@ Important note, Windows users will need to make sure
 [the latest Visual C++ Redistributable](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170#latest-supported-redistributable-version)
 is installed.
 
+Linux users need to install libwebkitgtk-6.0-4 libadwaita-1-0
+
 #### Important Note! Sometimes after you edit the webview files, and compile, the CSS or js will get corrupted and break. To fix this, you simply need to restart and compile again, and it will work fine. I am not sure why this happens, but I suspect it is due to some quirk of how saucer injects the webview files, likely as a postbuild script.
 
 More details on the client implementation can be found [here](client/readme.md).
@@ -60,6 +62,11 @@ Due to the absence of the rover & hardware, currently the rover_daemon is a dumm
 prints out requested commands and sends randomized telemetry. More details on the rover implementation can be
 found [here](rover/readme.md).
 
+The first commandline argument is the text file it reads the login from, it should be in the format of:
+```
+username@server
+password
+```
 ---
 
 ## Build Information

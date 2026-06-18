@@ -180,6 +180,12 @@ The client depends on both UI/runtime libraries and the shared XMPP communicatio
 - **shared_xmpp**: Internal static library used for rover/client XMPP communication.
     - this is a submodule of this project and should be built and linked automatically by CMake.
 
+Important note, Windows users will need to make sure
+[the latest Visual C++ Redistributable](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170#latest-supported-redistributable-version)
+is installed.
+
+Linux users need to install libwebkitgtk-6.0-4 libadwaita-1-0
+
 ### XMPP / Networking Dependencies
 
 Because the client links against `shared_xmpp`, it also inherits the XMPP wrapper's dependencies:

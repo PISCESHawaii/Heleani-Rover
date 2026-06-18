@@ -39,15 +39,12 @@ Or, when using CLion, select the `rover_daemon` target from the run/build config
 
 ## Runtime Credentials
 
-The dummy rover reads its XMPP credentials from:
-```text
-../../rover/db/login.txt
+The first commandline argument is the text file it reads the login from, it should be in the format of:
 ```
-The file is expected to contain two lines:
-```text
-jid@example.com
+username@server
 password
 ```
+
 Line 1 is the rover's JID, and line 2 is the password.
 
 If the file is missing or cannot be opened, the daemon exits immediately.
