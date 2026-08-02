@@ -9,7 +9,7 @@ if (WIN32)
     FetchContent_Declare(
             libstrophe_src
             GIT_REPOSITORY https://github.com/strophe/libstrophe.git
-            GIT_TAG 419b616
+            GIT_TAG 1d13b5d87c6b261179d689f37a706b0308bb9313
     )
     FetchContent_MakeAvailable(libstrophe_src)
 
